@@ -2151,9 +2151,9 @@ String qnhck_zero_text(uint16_t zero_mV) {
           <label>Max discharge power (W): </label>
           <input type='number' name='JKDCHGW' value="%JKDCHGW%" min="1000" max="200000" step="1" />
 
-          <label>SOC max (%): </label>
+          <label>SOC max (&#37;): </label>
           <input type='number' name='JKSOCMAX' value="%JKSOCMAX%" min="50" max="100" step="0.1" />
-          <label>SOC min (%): </label>
+          <label>SOC min (&#37;): </label>
           <input type='number' name='JKSOCMIN' value="%JKSOCMIN%" min="0" max="50" step="0.1" />
           <label>Current deadband (A): </label>
           <input type='number' name='JKDEADBAND' value="%JKDEADBAND%" min="0" max="5" step="0.01" />
@@ -2161,18 +2161,18 @@ String qnhck_zero_text(uint16_t zero_mV) {
           <input type='number' name='JKRESTMS' value="%JKRESTMS%" min="1000" max="3600000" step="1" />
           <label>Rest current threshold (A): </label>
           <input type='number' name='JKRESTMA' value="%JKRESTMA%" min="0" max="5" step="0.01" />
-          <label>Recalibrate below SOC (%): </label>
+          <label>Recalibrate below SOC (&#37;): </label>
           <input type='number' name='JKRCBOT' value="%JKRCBOT%" min="0" max="50" step="0.1" />
-          <label>Recalibrate above SOC (%): </label>
+          <label>Recalibrate above SOC (&#37;): </label>
           <input type='number' name='JKRCTOP' value="%JKRCTOP%" min="50" max="100" step="0.1" />
 
-          <label>Discharge ramp width (% SOC): </label>
+          <label>Discharge ramp width (&#37; SOC): </label>
           <input type='number' name='JKDRAMP' value="%JKDRAMP%" min="0.5" max="20" step="0.1" />
-          <label>Discharge ramp bottom, 0 W at this SOC (%): </label>
+          <label>Discharge ramp bottom, 0 W at this SOC (&#37;): </label>
           <input type='number' name='JKDRBOT' value="%JKDRBOT%" min="0" max="50" step="0.1" />
           <label>Discharge ramp minimum power (W): </label>
           <input type='number' name='JKDMINW' value="%JKDMINW%" min="0" max="200000" step="1" />
-          <label>Charge ramp width below SOC max (% SOC): </label>
+          <label>Charge ramp width below SOC max (&#37; SOC): </label>
           <input type='number' name='JKCRAMP' value="%JKCRAMP%" min="0.5" max="20" step="0.1" />
           <label>Charge ramp minimum power (W): </label>
           <input type='number' name='JKCMINW' value="%JKCMINW%" min="0" max="200000" step="1" />
