@@ -31,6 +31,7 @@
 #include "HYUNDAI-IONIQ-28-BATTERY.h"
 #include "IMIEV-CZERO-ION-BATTERY.h"
 #include "JAGUAR-IPACE-BATTERY.h"
+#include "JK-ACTIVE-BALANCER.h"
 #include "KIA-64FD-BATTERY.h"
 #include "KIA-E-GMP-BATTERY.h"
 #include "KIA-HYUNDAI-64-BATTERY.h"
@@ -146,6 +147,8 @@ const char* name_for_battery_type(BatteryType type) {
       return EcmpBattery::Name;
     case BatteryType::StellantisProOne:
       return StellantisProOneBattery::Name;
+    case BatteryType::JkActiveBalancer:
+      return JKActiveBalancer::Name;
     case BatteryType::ImievCZeroIon:
       return ImievCZeroIonBattery::Name;
     case BatteryType::JaguarIpace:
@@ -304,6 +307,8 @@ Battery* create_battery(BatteryType type) {
       return new EcmpBattery();
     case BatteryType::StellantisProOne:
       return new StellantisProOneBattery();
+    case BatteryType::JkActiveBalancer:
+      return new JKActiveBalancer();
     case BatteryType::ImievCZeroIon:
       return new ImievCZeroIonBattery();
     case BatteryType::JaguarIpace:
@@ -402,6 +407,7 @@ bool battery_supports_double(BatteryType type) {
     case BatteryType::RenaultZoe1:
     case BatteryType::RenaultZoe2:
     case BatteryType::TestFake:
+    case BatteryType::JkActiveBalancer:
     case BatteryType::TeslaModel3Y:
     case BatteryType::TeslaModelSX:
       return true;
@@ -554,6 +560,12 @@ void setup_battery() {
         case BatteryType::TeslaModel3Y:
         case BatteryType::TeslaModelSX:
           battery2 = new TeslaBattery(&datalayer.battery2, &datalayer_extended.tesla_2, can_config.battery_double);
+          break;
+        // --- JK Active Balancer --- (double only: two CAB500 share CAN ID 0x3C2, one per interface)
+        case BatteryType::JkActiveBalancer:
+          battery2 = new JKActiveBalancer(&datalayer.battery2, &datalayer_extended.jk_active_balancer_2,
+                                          &datalayer.system.status.battery2_allowed_contactor_closing,
+                                          can_config.battery_double);
           break;
         default:
           break;
