@@ -70,6 +70,7 @@ extern uint16_t user_selected_jk_recal_rest_mA;
 extern uint16_t user_selected_jk_recal_soc_bottom_dpct;
 extern uint16_t user_selected_jk_recal_soc_top_dpct;
 extern uint16_t user_selected_jk_dis_ramp_dpct;
+extern uint16_t user_selected_jk_dis_ramp_bottom_dpct;
 extern uint32_t user_selected_jk_dis_min_W;
 extern uint16_t user_selected_jk_chg_ramp_dpct;
 extern uint32_t user_selected_jk_chg_min_W;

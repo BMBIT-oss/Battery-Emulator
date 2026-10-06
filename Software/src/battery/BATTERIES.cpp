@@ -637,6 +637,7 @@ uint16_t user_selected_jk_recal_rest_mA = 100;
 uint16_t user_selected_jk_recal_soc_bottom_dpct = 100;  // 10.0 %
 uint16_t user_selected_jk_recal_soc_top_dpct = 950;     // 95.0 %
 uint16_t user_selected_jk_dis_ramp_dpct = 30;           // 3.0 %
+uint16_t user_selected_jk_dis_ramp_bottom_dpct = 70;    // 7.0 %, SOC where discharge power reaches zero
 uint32_t user_selected_jk_dis_min_W = 0;
 uint16_t user_selected_jk_chg_ramp_dpct = 50;  // 5.0 %
 uint32_t user_selected_jk_chg_min_W = 4000;
