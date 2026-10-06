@@ -68,6 +68,9 @@ class JKActiveBalancer : public CanBattery {
  private:
   static constexpr unsigned long POLL_INTERVAL_MS = 200;
   static constexpr unsigned long POLL_TIMEOUT_MS = 1000;
+  // Balancer #1 is polled for this long after boot; with no answer the battery stays Disconnected until
+  // reboot. The balancers take about 5 s to boot, so power them before or together with the emulator.
+  static constexpr unsigned long BOOT_POLL_WINDOW_MS = 10000;
   static constexpr int MAX_FAULT_COUNT = 10;  // 1 fault per silent second
   static constexpr unsigned long SOC_UPDATE_MS = 50;
   static constexpr float DEGRADATION_PER_CYCLE = 0.0001f;  // 0.01 % capacity per full cycle

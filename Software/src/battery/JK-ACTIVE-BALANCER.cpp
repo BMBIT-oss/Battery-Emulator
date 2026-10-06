@@ -478,7 +478,7 @@ void JKActiveBalancer::transmit_can(unsigned long currentMillis) {
     return;  // settings are inconsistent, battery not run
   }
 
-  if (!battery_can_alive && (currentMillis < 5000)) {
+  if (!battery_can_alive && (currentMillis < BOOT_POLL_WINDOW_MS)) {
     if (currentMillis - last_poll_millis >= POLL_INTERVAL_MS) {
       last_poll_millis = currentMillis;
       JK_REQUEST_FRAME.ID = 0x01;
