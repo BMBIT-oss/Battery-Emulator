@@ -2142,7 +2142,7 @@ String qnhck_zero_text(uint16_t zero_mV) {
         </div>
 
         <div class="if-jk">
-          <p style='color:#ccc'>JK Active Balancer: settings take effect after a reboot. The chemistry box below
+          <p style='grid-column: span 2; color:#ccc; margin:4px 0;'>JK Active Balancer: settings take effect after a reboot. The chemistry box below
           selects the SOC table and overrides the chemistry dropdown above. Set the target discharge voltage
           (Battery settings on the main page) to your pack cut-off: discharge is 0 W below it.</p>
 
@@ -2202,7 +2202,7 @@ String qnhck_zero_text(uint16_t zero_mV) {
           <input type='number' name='JKVEMON' id='JKVEMON' value="%JKVEMON%" min="2000" max="4300" step="1" />
           <label>SOC empty: re-arm above cell (mV): </label>
           <input type='number' name='JKVEMOFF' id='JKVEMOFF' value="%JKVEMOFF%" min="2000" max="4300" step="1" />
-          <p style='color:#ccc'>Order required: min cell &lt; empty on &lt; empty off &lt; full off &lt; full on &lt; max cell,
+          <p style='grid-column: span 2; color:#ccc; margin:4px 0;'>Order required: min cell &lt; empty on &lt; empty off &lt; full off &lt; full on &lt; max cell,
           and pack min &lt; pack max. Otherwise the battery does not run (see More battery info).</p>
 
           <label>Number of cells: </label>
