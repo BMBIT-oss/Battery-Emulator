@@ -911,6 +911,49 @@ struct DATALAYER_INFO_ZOE_PH2 {
   bool UserRequestNVROLReset;
 };
 
+// --- JK Active Balancer ---
+/** Array size for the per-balancer web data. Must be >= JKActiveBalancer::MAX_BALANCERS (checked there) */
+#define MAX_BALANCERS_WEB 15
+struct DATALAYER_INFO_JK_ACTIVE_BALANCER {
+  /** uint32_t */
+  /** Coulomb counter BMS cycle counter, persisted in NVS */
+  uint32_t BMS_Cycles;
+  /** Calculated battery capacity in Wh after cycle degradation */
+  uint32_t Calc_capacity_Wh;
+
+  /** int */
+  /** Number of balancers derived from the cell layout settings */
+  int number_of_balancers;
+  /** 1 fault per second without CAB500 frames, same idea as fault_counters */
+  int ct_cab500_fault_counter;
+  int fault_counters[MAX_BALANCERS_WEB];
+
+  /** int16_t / uint16_t */
+  int16_t balancer_temperatures_dC[MAX_BALANCERS_WEB];
+  uint16_t max_balance_current_mA[MAX_BALANCERS_WEB];
+
+  /** uint8_t */
+  /** JKConfigError from setup(): 0 = OK, otherwise the layout settings are inconsistent and the battery is not run */
+  uint8_t config_error;
+  /** Raw CAB500 error byte captured when the hardware error latched
+   * (0x41 overcurrent, 0x42 ref voltage, 0x44 signal lost, 0x46 supply voltage) */
+  uint8_t ct_cab500_error_code;
+
+  /** bool */
+  bool is_connected[MAX_BALANCERS_WEB];
+  bool balance_switch_status[MAX_BALANCERS_WEB];
+  bool charge_balancing_status[MAX_BALANCERS_WEB];
+  bool discharge_balancing_status[MAX_BALANCERS_WEB];
+  bool cell_count_mismatch_alarm[MAX_BALANCERS_WEB];
+  bool wire_resistance_alarm[MAX_BALANCERS_WEB];
+  /** true when no CAB500 frames for MAX_FAULT_COUNT seconds (after the 30 s boot grace) */
+  bool ct_cab500_comms_fault;
+  /** true when the CAB500 ERROR_INDICATION bit persisted > 10 s. Latched until reboot */
+  bool ct_cab500_hardware_error;
+  /** true once CAB500 frames were received and there is no comms fault */
+  bool ct_cab500_is_connected;
+};
+
 class DataLayerExtended {
  public:
   union {
@@ -940,6 +983,11 @@ class DataLayerExtended {
     };
     DATALAYER_INFO_MEB meb;
     DATALAYER_INFO_VOLVO_HYBRID VolvoHybrid;
+    // --- JK Active Balancer ---
+    struct {
+      DATALAYER_INFO_JK_ACTIVE_BALANCER jk_active_balancer;
+      DATALAYER_INFO_JK_ACTIVE_BALANCER jk_active_balancer_2;
+    };
   };
 
   // Entries with non-zero default values should go here.
