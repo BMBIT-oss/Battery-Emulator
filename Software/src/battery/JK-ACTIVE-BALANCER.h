@@ -175,6 +175,11 @@ class JKActiveBalancer : public CanBattery {
   // The CAB500 hardware error latches the same way.
   bool cell_count_alarm_latched[MAX_BALANCERS] = {false};
   bool wire_alarm_latched[MAX_BALANCERS] = {false};
+  // An alarm bit must be present in this many consecutive status frames before it latches, so a
+  // garbage status byte from a balancer that is still booting cannot lock the pack until reboot
+  static constexpr uint8_t ALARM_DEBOUNCE_FRAMES = 3;
+  uint8_t cell_count_alarm_streak[MAX_BALANCERS] = {0};
+  uint8_t wire_alarm_streak[MAX_BALANCERS] = {0};
 
   // --- CAB500 state ---
   float ct_cab500_current_sum_A = 0.0f;  // Accumulator for averaging between SOC ticks

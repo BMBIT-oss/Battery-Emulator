@@ -254,6 +254,21 @@ void JKActiveBalancer::handle_incoming_can_frame(CAN_frame rx_frame) {
           balancers[balancer_idx].alarm_cell_count_mismatch = raw_cell_count;
           balancers[balancer_idx].alarm_wire_resistance = raw_wire_res;
         }
+        // Consecutive status frames with the alarm present (saturating), reset by a clean frame
+        if (balancers[balancer_idx].alarm_cell_count_mismatch) {
+          if (cell_count_alarm_streak[balancer_idx] < 255) {
+            cell_count_alarm_streak[balancer_idx]++;
+          }
+        } else {
+          cell_count_alarm_streak[balancer_idx] = 0;
+        }
+        if (balancers[balancer_idx].alarm_wire_resistance) {
+          if (wire_alarm_streak[balancer_idx] < 255) {
+            wire_alarm_streak[balancer_idx]++;
+          }
+        } else {
+          wire_alarm_streak[balancer_idx] = 0;
+        }
         break;
       }
       case 0x03: {
@@ -362,10 +377,10 @@ void JKActiveBalancer::update_values() {
   // --- Hardware alarms from any balancer, latched until reboot ---
   bool hardware_alarm = false;
   for (int i = 0; i < number_of_balancers; i++) {
-    if (balancers[i].alarm_cell_count_mismatch) {
+    if (cell_count_alarm_streak[i] >= ALARM_DEBOUNCE_FRAMES) {
       cell_count_alarm_latched[i] = true;
     }
-    if (balancers[i].alarm_wire_resistance) {
+    if (wire_alarm_streak[i] >= ALARM_DEBOUNCE_FRAMES) {
       wire_alarm_latched[i] = true;
     }
     if (cell_count_alarm_latched[i] || wire_alarm_latched[i]) {
