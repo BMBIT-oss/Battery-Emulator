@@ -72,7 +72,11 @@ std::vector<BatteryCommand> battery_commands = {
     {"resetEnergySavingMode", "Reset Energy Saving Mode", "reset energy saving mode to normal?",
      [](Battery* b) { return b && b->supports_energy_saving_mode_reset(); },
      [](Battery* b) { b->reset_energy_saving_mode(); }},
-    // --- JK Active Balancer --- CAB500 current sensor CAN speed (sensor ships at 500 kbps, driver needs 250)
+    // --- JK Active Balancer ---
+    {"resetCycles", "Reset BMS cycles",
+     "reset the BMS cycle counter to zero? SOH returns to 100 percent and the capacity used for SOC is recalculated.",
+     [](Battery* b) { return b && b->supports_reset_cycles(); }, [](Battery* b) { b->reset_cycles(); }, true},
+    // CAB500 current sensor CAN speed (sensor ships at 500 kbps, driver needs 250)
     {"cab500Speed125", "CAB500 to 125 kbps",
      "reconfigure the CAB500 current sensor to 125 kbps? The battery CAN bus is switched for about 10 s.",
      [](Battery* b) { return b && b->supports_cab500_speed_change(); },

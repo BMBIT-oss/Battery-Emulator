@@ -60,6 +60,7 @@ class JKActiveBalancer : public CanBattery {
   bool supports_real_BMS_status() { return true; }
   bool soc_plausible();
   // Reset the coulomb-counter cycle counter (SOH returns to 100 %). Applied in update_values().
+  bool supports_reset_cycles() { return true; }
   void reset_cycles() { cycles_reset_request = true; }
   // CAB500 CAN speed reconfiguration (UDS over the battery bus), runs as a state machine in transmit_can()
   bool supports_cab500_speed_change() { return true; }

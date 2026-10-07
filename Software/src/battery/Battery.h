@@ -175,7 +175,10 @@ class Battery {
   // datalayer status insulation_resistance_kOhm
   virtual bool supports_insulation_resistance() { return false; }
 
-  // --- JK Active Balancer --- CAB500 current sensor CAN speed reconfiguration (UDS over the battery bus)
+  // --- JK Active Balancer --- coulomb counter cycle reset and CAB500 current sensor CAN speed
+  // reconfiguration (UDS over the battery bus)
+  virtual bool supports_reset_cycles() { return false; }
+  virtual void reset_cycles() {}
   virtual bool supports_cab500_speed_change() { return false; }
   virtual void request_cab500_speed_change(uint16_t kbps) {}
 

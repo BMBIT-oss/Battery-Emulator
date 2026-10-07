@@ -34,6 +34,9 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
   // The CAB500 speed buttons get a heading of their own above the first one
   String get_command_prefix_html(const char* identifier) {
     String content;
+    if (jk_dl && strcmp(identifier, "resetCycles") == 0) {
+      content += "<h4>BMS cycles: " + String(jk_dl->BMS_Cycles) + "</h4>";
+    }
     if (jk_dl && strcmp(identifier, "cab500Speed125") == 0) {
       content += "<h4>CAB500 CAN speed (new sensors ship at 500 kbps, this driver needs 250 kbps). ";
       content += "Open the contactors first; the battery bus is switched for about 10 s.</h4>";
