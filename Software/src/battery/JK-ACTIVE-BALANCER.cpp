@@ -558,15 +558,34 @@ void JKActiveBalancer::update_values() {
     datalayer_battery->status.max_discharge_power_W = 0;
     datalayer_battery->status.max_charge_power_W = charge_power_limit_W(
         max_charge_W_active, soc.getSoCPercent(), soc_cfg.soc_max_percent, chg_ramp_pct_active, chg_min_power_W_active);
-  } else if (cell_deviation_mV > MAX_CELL_DEVIATION_MV + 50) {  // small buffer before we drop to FAULT_POWER_W
-    datalayer_battery->status.max_discharge_power_W = FAULT_POWER_W;
-    datalayer_battery->status.max_charge_power_W = FAULT_POWER_W;
   } else if (datalayer_battery->status.voltage_dV > discharge_cutoff_dV + dis_cutoff_hyst_dV_active) {
     datalayer_battery->status.max_discharge_power_W =
         discharge_power_limit_W(max_discharge_W_active, soc.getSoCPercent(), dis_ramp_bottom_pct_active,
                                 dis_ramp_pct_active, dis_min_power_W_active);
     datalayer_battery->status.max_charge_power_W = charge_power_limit_W(
         max_charge_W_active, soc.getSoCPercent(), soc_cfg.soc_max_percent, chg_ramp_pct_active, chg_min_power_W_active);
+  }
+
+  // Cell spread above the deviation setting: derate both limits linearly, full power at the setting,
+  // FAULT_POWER_W at setting + DEVIATION_DERATE_MV and beyond (8.13 jumped straight to 50 W at that point).
+  // The safety layer raises its own warning at the setting; this one explains the reduced power.
+  if (!comms_fault && !hardware_alarm && cell_deviation_mV > MAX_CELL_DEVIATION_MV) {
+    float over_mV = (float)(cell_deviation_mV - MAX_CELL_DEVIATION_MV);
+    float factor = 1.0f - over_mV / (float)DEVIATION_DERATE_MV;
+    if (factor < 0.0f) {
+      factor = 0.0f;
+    }
+    uint32_t dis = (uint32_t)(datalayer_battery->status.max_discharge_power_W * factor);
+    uint32_t chg = (uint32_t)(datalayer_battery->status.max_charge_power_W * factor);
+    datalayer_battery->status.max_discharge_power_W = (dis < FAULT_POWER_W) ? FAULT_POWER_W : dis;
+    datalayer_battery->status.max_charge_power_W = (chg < FAULT_POWER_W) ? FAULT_POWER_W : chg;
+    if (!deviation_warn_active) {
+      deviation_warn_active = true;
+      set_event(EVENT_JK_CELL_DEVIATION, cell_deviation_mV, battery_index);
+    }
+  } else if (deviation_warn_active && cell_deviation_mV <= MAX_CELL_DEVIATION_MV) {
+    deviation_warn_active = false;
+    clear_event(EVENT_JK_CELL_DEVIATION, battery_index);
   }
 
   // SOC window reached: no further charge / discharge. The full/empty events themselves are owned by the

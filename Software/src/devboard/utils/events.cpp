@@ -212,6 +212,7 @@ void init_events(void) {
   // Missed frames before the 10 s fault, cleared on their own when frames return
   set_battery_event_level(EVENT_JK_CAB500_COMM_WARNING, EVENT_LEVEL_WARNING);
   set_battery_event_level(EVENT_JK_BALANCER_COMM_WARNING, EVENT_LEVEL_WARNING);
+  set_battery_event_level(EVENT_JK_CELL_DEVIATION, EVENT_LEVEL_WARNING);
   set_battery_event_level(EVENT_BATTERY_OVERHEAT, EVENT_LEVEL_ERROR);
   set_battery_event_level(EVENT_BATTERY_OVERVOLTAGE, EVENT_LEVEL_WARNING);
   set_battery_event_level(EVENT_BATTERY_UNDERVOLTAGE, EVENT_LEVEL_WARNING);
@@ -528,6 +529,9 @@ static String get_event_base_message(EVENTS_ENUM_TYPE event) {
     case EVENT_JK_BALANCER_COMM_WARNING:
       return "JK: a balancer did not answer a poll for more than a second. Clears when it answers, becomes a "
              "latched fault after 10 s. Data = balancer number";
+    case EVENT_JK_CELL_DEVIATION:
+      return "JK: cell spread above the deviation setting, charge and discharge power are reduced linearly down to "
+             "50 W at setting + 50 mV. Clears when the spread shrinks. Data = deviation in mV";
     case EVENT_BATTERY_REQUESTS_HEAT:
       return "COLD BATTERY! Battery requesting heating pads to activate!";
     case EVENT_BATTERY_WARMED_UP:

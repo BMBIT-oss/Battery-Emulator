@@ -184,6 +184,9 @@ class JKActiveBalancer : public CanBattery {
   bool cells_lost_event_raised = false;
   bool cab500_comm_warn_active = false;
   bool balancer_comm_warn_active = false;
+  bool deviation_warn_active = false;
+  // Width of the linear power derate above the deviation setting; at setting + this the limits are FAULT_POWER_W
+  static constexpr uint16_t DEVIATION_DERATE_MV = 50;
   // Readings beyond the sensor's range are start-up artefacts (a CAB500 that is powering up sends zeros,
   // which decode to -2147483 A through the 0x80000000 offset) and must never reach the coulomb counter
   static constexpr int32_t CAB500_MAX_PLAUSIBLE_mA = 600000;  // CAB500 = 500 A sensor, overcurrent flag ~520 A
