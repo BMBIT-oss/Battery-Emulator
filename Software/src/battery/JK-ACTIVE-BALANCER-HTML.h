@@ -104,7 +104,7 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
     content += jk_dl->ct_cab500_is_connected ? "<span style='color:lightgreen;'>Connected</span>"
                                              : "<span style='color:red;'>Disconnected</span>";
     content += "</h4><h4>Communication: ";
-    content += jk_dl->ct_cab500_comms_fault ? "<span style='color:red;'>FAULT</span>"
+    content += jk_dl->ct_cab500_comms_fault ? "<span style='color:red;'>FAULT (latched, reboot to clear)</span>"
                                             : "<span style='color:lightgreen;'>OK</span>";
     content += "</h4><h4>Communication Faults: " + String(jk_dl->ct_cab500_fault_counter) + "</h4>";
     content += "<h4>Hardware: ";

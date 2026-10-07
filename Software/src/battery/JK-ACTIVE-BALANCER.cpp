@@ -305,7 +305,7 @@ void JKActiveBalancer::update_values() {
   if (config_error != JK_CFG_OK) {
     // Inconsistent settings: stay in fault, no power, contactors not allowed. Fix on the Settings page and reboot.
     datalayer_battery->status.real_bms_status = BMS_FAULT;
-    set_event(EVENT_BATTERY_CHG_DISCHG_STOP_REQ, 0, battery_index);
+    set_event(EVENT_JK_CONFIG_ERROR, config_error, battery_index);
     datalayer_battery->status.max_charge_power_W = 0;
     datalayer_battery->status.max_discharge_power_W = 0;
     datalayer_jk->config_error = config_error;
@@ -381,48 +381,62 @@ void JKActiveBalancer::update_values() {
   // --- Hardware alarms from any balancer, latched until reboot ---
   bool hardware_alarm = false;
   for (int i = 0; i < number_of_balancers; i++) {
-    if (cell_count_alarm_streak[i] >= ALARM_DEBOUNCE_FRAMES) {
+    if (cell_count_alarm_streak[i] >= ALARM_DEBOUNCE_FRAMES && !cell_count_alarm_latched[i]) {
       cell_count_alarm_latched[i] = true;
+      set_event_latched(EVENT_JK_CELL_COUNT_MISMATCH, i + 1, battery_index);
     }
-    if (wire_alarm_streak[i] >= ALARM_DEBOUNCE_FRAMES) {
+    if (wire_alarm_streak[i] >= ALARM_DEBOUNCE_FRAMES && !wire_alarm_latched[i]) {
       wire_alarm_latched[i] = true;
+      set_event_latched(EVENT_JK_WIRE_RESISTANCE, i + 1, battery_index);
     }
     if (cell_count_alarm_latched[i] || wire_alarm_latched[i]) {
       hardware_alarm = true;
     }
   }
 
-  // --- Communication timeouts ---
+  // --- Communication timeouts, latched until reboot ---
   bool comms_fault = false;
   for (int i = 0; i < number_of_balancers; i++) {
-    if (fault_counters[i] >= MAX_FAULT_COUNT) {
+    if (fault_counters[i] >= MAX_FAULT_COUNT && !balancer_comms_latched[i]) {
+      balancer_comms_latched[i] = true;
+      set_event_latched(EVENT_JK_BALANCER_COMM_FAULT, i + 1, battery_index);
+    }
+    if (balancer_comms_latched[i]) {
       comms_fault = true;
-      break;
     }
   }
 
   // CAB500 faults join the same safe-state logic: dead sensor -> comms_fault,
-  // persistent ERROR_INDICATION -> hardware_alarm.
+  // persistent ERROR_INDICATION -> hardware_alarm. Both already latch in the driver.
   if (ct_cab500_comms_fault) {
     comms_fault = true;
+    if (!cab500_comm_event_raised) {
+      cab500_comm_event_raised = true;
+      set_event_latched(EVENT_JK_CAB500_COMM_FAULT, 0, battery_index);
+    }
   }
   if (ct_cab500_hardware_error) {
     hardware_alarm = true;
+    if (!cab500_hw_event_raised) {
+      cab500_hw_event_raised = true;
+      set_event_latched(EVENT_JK_CAB500_HW_ERROR, ct_cab500_error_code, battery_index);
+    }
   }
 
   if (comms_fault || hardware_alarm) {
     datalayer_battery->status.real_bms_status = BMS_FAULT;
-    set_event(EVENT_BATTERY_CHG_DISCHG_STOP_REQ, 0, battery_index);
     datalayer_battery->status.max_charge_power_W = FAULT_POWER_W;
     datalayer_battery->status.max_discharge_power_W = FAULT_POWER_W;
   } else if (battery_can_alive && cells_complete) {
     datalayer_battery->status.real_bms_status = BMS_ACTIVE;
     *allows_contactor_closing = true;
-    clear_event(EVENT_BATTERY_CHG_DISCHG_STOP_REQ, battery_index);
   } else if (cells_ever_complete) {
     // A cell that was there has gone silent without an alarm bit: stop, keep the last good readings
     datalayer_battery->status.real_bms_status = BMS_DISCONNECTED;
-    set_event(EVENT_BATTERY_CHG_DISCHG_STOP_REQ, 0, battery_index);
+    if (!cells_lost_event_raised) {
+      cells_lost_event_raised = true;
+      set_event_latched(EVENT_JK_CELL_COUNT_MISMATCH, 0, battery_index);
+    }
     datalayer_battery->status.max_charge_power_W = 0;
     datalayer_battery->status.max_discharge_power_W = 0;
   } else {
@@ -453,7 +467,8 @@ void JKActiveBalancer::update_values() {
   for (int i = 0; i < number_of_balancers; i++) {
     datalayer_jk->balancer_temperatures_dC[i] = balancers[i].temperature_dC;
     datalayer_jk->fault_counters[i] = fault_counters[i];
-    datalayer_jk->is_connected[i] = (fault_counters[i] < MAX_FAULT_COUNT) && (last_response_millis[i] != 0);
+    datalayer_jk->is_connected[i] =
+        !balancer_comms_latched[i] && (fault_counters[i] < MAX_FAULT_COUNT) && (last_response_millis[i] != 0);
     datalayer_jk->max_balance_current_mA[i] = balancers[i].max_balance_current_mA;
     datalayer_jk->balance_switch_status[i] = balancers[i].balance_switch_on;
     datalayer_jk->charge_balancing_status[i] = balancers[i].is_charge_balancing;
@@ -611,7 +626,9 @@ void JKActiveBalancer::transmit_can(unsigned long currentMillis) {
           ct_cab500_fault_counter++;
         }
       }
-      ct_cab500_comms_fault = (ct_cab500_fault_counter >= MAX_FAULT_COUNT);
+      if (ct_cab500_fault_counter >= MAX_FAULT_COUNT) {
+        ct_cab500_comms_fault = true;  // latched until reboot
+      }
     }
   }
 
@@ -625,8 +642,10 @@ void JKActiveBalancer::transmit_can(unsigned long currentMillis) {
       }
       ct_cab500_current_sum_A = 0.0f;
       ct_cab500_sample_count = 0;
+    } else {
+      // No fresh samples (sensor silent, boot grace): count nothing rather than integrate a stale reading
+      BMS_current_A = 0.0f;
     }
-    // else: no fresh samples (fault/grace) -> keep last known BMS_current_A
     soc.update(BMS_cell_max_mV, BMS_cell_min_mV, BMS_current_A);
   }
 }

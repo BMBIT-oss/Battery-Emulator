@@ -175,6 +175,13 @@ class JKActiveBalancer : public CanBattery {
   // The CAB500 hardware error latches the same way.
   bool cell_count_alarm_latched[MAX_BALANCERS] = {false};
   bool wire_alarm_latched[MAX_BALANCERS] = {false};
+  // Communication faults latch until reboot as well (user decision): a bus that dropped out for 10 s is
+  // not trusted again without a power cycle
+  bool balancer_comms_latched[MAX_BALANCERS] = {false};
+  // Events are raised once per fault (set_event counts every call as an occurrence)
+  bool cab500_comm_event_raised = false;
+  bool cab500_hw_event_raised = false;
+  bool cells_lost_event_raised = false;
   // An alarm bit must be present in this many consecutive status frames before it latches, so a
   // garbage status byte from a balancer that is still booting cannot lock the pack until reboot
   static constexpr uint8_t ALARM_DEBOUNCE_FRAMES = 3;
