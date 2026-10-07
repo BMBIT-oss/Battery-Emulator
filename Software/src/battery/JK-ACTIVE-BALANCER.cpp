@@ -99,6 +99,8 @@ void JKActiveBalancer::setup(void) {
   datalayer_jk->config_error = config_error;
 
   ct_cab500_boot_millis = millis();  // Start of the 30 s error-free boot grace period
+  // Balancers powered together with the emulator put errors on the bus while they boot
+  ignore_can_errors_for(can_interface, BOOT_POLL_WINDOW_MS);
 
   // --- Limits, ramps and SOC settings; they stay fixed until the next reboot ---
   max_charge_W_active = user_selected_jk_max_charge_W;
@@ -291,6 +293,72 @@ void JKActiveBalancer::update_values() {
     return;
   }
 
+  // --- Data aggregation from all balancers ---
+  uint32_t total_voltage_mV = 0;
+  int16_t min_temp = 32767;
+  int16_t max_temp = -32768;
+  uint16_t min_cell_voltage = 65535;
+  uint16_t max_cell_voltage = 0;
+  int cells_processed = 0;
+  int valid_cells = 0;  // cells that have reported a voltage; 0 mV = not received yet or tap broken
+
+  for (int i = 0; i < number_of_balancers; i++) {
+    if (balancers[i].temperature_dC > max_temp) {
+      max_temp = balancers[i].temperature_dC;
+    }
+    if (balancers[i].temperature_dC < min_temp) {
+      min_temp = balancers[i].temperature_dC;
+    }
+
+    int cells_in_this_balancer;
+    if (JK_BRIDGE_MODE) {
+      if (i == 0 && number_of_balancers > 1) {
+        cells_in_this_balancer = JK_BRIDGE_CELLS;
+      } else if (i == 0 && number_of_balancers == 1) {
+        cells_in_this_balancer = JK_NUMBER_OF_CELLS;
+      } else {
+        int remaining_cells = JK_NUMBER_OF_CELLS - cells_processed;
+        cells_in_this_balancer = (remaining_cells > JK_BRIDGE_CELLS) ? JK_BRIDGE_CELLS : remaining_cells;
+      }
+    } else {
+      int remaining_cells = JK_NUMBER_OF_CELLS - cells_processed;
+      cells_in_this_balancer = (remaining_cells > JK_CELLS_BALANCER) ? JK_CELLS_BALANCER : remaining_cells;
+    }
+
+    for (int j = 0; j < cells_in_this_balancer; j++) {
+      uint16_t current_cell_voltage = balancers[i].cell_voltages_mV[j];
+      if (current_cell_voltage > 0) {
+        valid_cells++;
+        total_voltage_mV += current_cell_voltage;
+        datalayer_battery->status.cell_voltages_mV[cells_processed] = current_cell_voltage;
+        if (current_cell_voltage > max_cell_voltage) {
+          max_cell_voltage = current_cell_voltage;
+        }
+        if (current_cell_voltage < min_cell_voltage) {
+          min_cell_voltage = current_cell_voltage;
+        }
+      }
+      cells_processed++;
+      if (cells_processed >= JK_NUMBER_OF_CELLS) {
+        break;
+      }
+    }
+    if (cells_processed >= JK_NUMBER_OF_CELLS) {
+      break;
+    }
+  }
+  // Cell extremes for the SOC calculation
+  BMS_cell_max_mV = max_cell_voltage;
+  BMS_cell_min_mV = (min_cell_voltage == 65535) ? 0 : min_cell_voltage;
+
+  // The pack is only known once every configured cell has a voltage. Before that (balancers still
+  // booting, first polls in flight) nothing is published: a half-read pack looks like cells at 0 mV
+  // and would trip the latching critical-undervoltage protection.
+  const bool cells_complete = (valid_cells >= JK_NUMBER_OF_CELLS);
+  if (cells_complete) {
+    cells_ever_complete = true;
+  }
+
   // --- Hardware alarms from any balancer, latched until reboot ---
   bool hardware_alarm = false;
   for (int i = 0; i < number_of_balancers; i++) {
@@ -328,86 +396,38 @@ void JKActiveBalancer::update_values() {
     set_event(EVENT_BATTERY_CHG_DISCHG_STOP_REQ, 0, battery_index);
     datalayer_battery->status.max_charge_power_W = FAULT_POWER_W;
     datalayer_battery->status.max_discharge_power_W = FAULT_POWER_W;
+  } else if (battery_can_alive && cells_complete) {
+    datalayer_battery->status.real_bms_status = BMS_ACTIVE;
+    *allows_contactor_closing = true;
+    clear_event(EVENT_BATTERY_CHG_DISCHG_STOP_REQ, battery_index);
+  } else if (cells_ever_complete) {
+    // A cell that was there has gone silent without an alarm bit: stop, keep the last good readings
+    datalayer_battery->status.real_bms_status = BMS_DISCONNECTED;
+    set_event(EVENT_BATTERY_CHG_DISCHG_STOP_REQ, 0, battery_index);
+    datalayer_battery->status.max_charge_power_W = 0;
+    datalayer_battery->status.max_discharge_power_W = 0;
   } else {
-    if (battery_can_alive) {
-      datalayer_battery->status.real_bms_status = BMS_ACTIVE;
-      *allows_contactor_closing = true;
-      clear_event(EVENT_BATTERY_CHG_DISCHG_STOP_REQ, battery_index);
-    } else {
-      datalayer_battery->status.real_bms_status = BMS_DISCONNECTED;
-      set_event(EVENT_BATTERY_CHG_DISCHG_STOP_REQ, 0, battery_index);
-    }
+    // Waiting for the first complete data set after boot. No stop request yet: nothing is allowed anyway
+    // (0 W, contactors not permitted) and v13 raises its own "battery missing" error if nothing ever comes.
+    datalayer_battery->status.real_bms_status = BMS_DISCONNECTED;
+    datalayer_battery->status.max_charge_power_W = 0;
+    datalayer_battery->status.max_discharge_power_W = 0;
   }
 
-  // --- Data aggregation from all balancers ---
-  uint32_t total_voltage_mV = 0;
-  int16_t min_temp = 32767;
-  int16_t max_temp = -32768;
-  uint16_t min_cell_voltage = 65535;
-  uint16_t max_cell_voltage = 0;
-  int cells_processed = 0;
-
-  for (int i = 0; i < number_of_balancers; i++) {
-    if (balancers[i].temperature_dC > max_temp) {
-      max_temp = balancers[i].temperature_dC;
-    }
-    if (balancers[i].temperature_dC < min_temp) {
-      min_temp = balancers[i].temperature_dC;
-    }
-
-    int cells_in_this_balancer;
-    if (JK_BRIDGE_MODE) {
-      if (i == 0 && number_of_balancers > 1) {
-        cells_in_this_balancer = JK_BRIDGE_CELLS;
-      } else if (i == 0 && number_of_balancers == 1) {
-        cells_in_this_balancer = JK_NUMBER_OF_CELLS;
-      } else {
-        int remaining_cells = JK_NUMBER_OF_CELLS - cells_processed;
-        cells_in_this_balancer = (remaining_cells > JK_BRIDGE_CELLS) ? JK_BRIDGE_CELLS : remaining_cells;
-      }
-    } else {
-      int remaining_cells = JK_NUMBER_OF_CELLS - cells_processed;
-      cells_in_this_balancer = (remaining_cells > JK_CELLS_BALANCER) ? JK_CELLS_BALANCER : remaining_cells;
-    }
-
-    for (int j = 0; j < cells_in_this_balancer; j++) {
-      uint16_t current_cell_voltage = balancers[i].cell_voltages_mV[j];
-      if (current_cell_voltage > 0) {
-        total_voltage_mV += current_cell_voltage;
-        datalayer_battery->status.cell_voltages_mV[cells_processed] = current_cell_voltage;
-        if (current_cell_voltage > max_cell_voltage) {
-          max_cell_voltage = current_cell_voltage;
-        }
-        if (current_cell_voltage < min_cell_voltage) {
-          min_cell_voltage = current_cell_voltage;
-        }
-      }
-      cells_processed++;
-      if (cells_processed >= JK_NUMBER_OF_CELLS) {
-        break;
-      }
-    }
-    if (cells_processed >= JK_NUMBER_OF_CELLS) {
-      break;
-    }
-  }
-  // Cell extremes for the SOC calculation
-  BMS_cell_max_mV = max_cell_voltage;
-  BMS_cell_min_mV = (min_cell_voltage == 65535) ? 0 : min_cell_voltage;
-
-  if (JK_BALANCER_LOW_VOLTAGE) {
-    // Parallel packs: pack voltage = average of the per-balancer sums. total_voltage_mV holds the sum of
-    // ALL cells of ALL balancers, so dividing by number_of_balancers gives the average pack voltage.
-    // NOTE: a non-responding balancer contributes 0 -> average drops (fault counters catch the timeout).
-    datalayer_battery->status.voltage_dV = (total_voltage_mV / number_of_balancers) / 100;
-  } else {
-    datalayer_battery->status.voltage_dV = total_voltage_mV / 100;
-  }
-  datalayer_battery->status.temperature_min_dC = min_temp;
-  datalayer_battery->status.temperature_max_dC = max_temp;
-  datalayer_battery->status.cell_min_voltage_mV = BMS_cell_min_mV;
-  datalayer_battery->status.cell_max_voltage_mV = max_cell_voltage;
   datalayer_battery->status.current_dA = BMS_current_A * 10;
+  if (cells_complete) {
+    if (JK_BALANCER_LOW_VOLTAGE) {
+      // Parallel packs: pack voltage = average of the per-balancer sums. total_voltage_mV holds the sum of
+      // ALL cells of ALL balancers, so dividing by number_of_balancers gives the average pack voltage.
+      datalayer_battery->status.voltage_dV = (total_voltage_mV / number_of_balancers) / 100;
+    } else {
+      datalayer_battery->status.voltage_dV = total_voltage_mV / 100;
+    }
+    datalayer_battery->status.temperature_min_dC = min_temp;
+    datalayer_battery->status.temperature_max_dC = max_temp;
+    datalayer_battery->status.cell_min_voltage_mV = BMS_cell_min_mV;
+    datalayer_battery->status.cell_max_voltage_mV = max_cell_voltage;
+  }
 
   // --- Extended datalayer for the web interface ---
   datalayer_jk->number_of_balancers = number_of_balancers;
@@ -427,6 +447,10 @@ void JKActiveBalancer::update_values() {
   datalayer_jk->ct_cab500_error_code = ct_cab500_error_code;
   datalayer_jk->ct_cab500_fault_counter = ct_cab500_fault_counter;
   datalayer_jk->ct_cab500_is_connected = (ct_cab500_last_frame_millis != 0) && !ct_cab500_comms_fault;
+
+  if (!cells_complete) {
+    return;  // SOC, capacity and power limits need the whole pack
+  }
 
   // --- Cycle counter: web reset request, and persistence when the library counted a new cycle ---
   if (cycles_reset_request) {

@@ -130,6 +130,7 @@ class JKActiveBalancer : public CanBattery {
   uint32_t Calculated_capacity_Wh = 0;
 
   bool battery_can_alive = false;
+  bool cells_ever_complete = false;  // every configured cell has reported a voltage at least once since boot
   unsigned long previousMillis1s = 0;
   unsigned long previousMillis50 = 0;
 
