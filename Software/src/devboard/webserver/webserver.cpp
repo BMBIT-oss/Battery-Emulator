@@ -625,7 +625,7 @@ void init_webserver() {
             // --- JK Active Balancer --- percent fields stored x10, amp fields x1000
           } else if (p->name() == "JKSOCMAX" || p->name() == "JKSOCMIN" || p->name() == "JKRCBOT" ||
                      p->name() == "JKRCTOP" || p->name() == "JKDRAMP" || p->name() == "JKDRBOT" ||
-                     p->name() == "JKCRAMP") {
+                     p->name() == "JKCRAMP" || p->name() == "JKDCHYST") {
             settings.saveUInt(p->name().c_str(), (uint32_t)lroundf(p->value().toFloat() * 10.0f));
           } else if (p->name() == "JKDEADBAND" || p->name() == "JKRESTMA") {
             settings.saveUInt(p->name().c_str(), (uint32_t)lroundf(p->value().toFloat() * 1000.0f));

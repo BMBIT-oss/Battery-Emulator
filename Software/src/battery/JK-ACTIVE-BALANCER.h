@@ -80,8 +80,6 @@ class JKActiveBalancer : public CanBattery {
   static constexpr float DEGRADATION_PER_CYCLE = 0.0001f;  // 0.01 % capacity per full cycle
   // Reported instead of 0 W in fault / deviation states: on 0 W a Deye starts charging or discharging at once
   static constexpr uint32_t FAULT_POWER_W = 50;
-  // Discharge cut-off hysteresis above max_user_set_discharge_voltage_dV, in deciVolt
-  static constexpr uint16_t DISCHARGE_CUTOFF_HYSTERESIS_DV = 30;
 
   // CAB500 CAN current sensor: -2 variant, standard frame, DLC 8, every 10 ms
   static constexpr uint32_t CAB500_CAN_ID = 0x3C2;
@@ -162,6 +160,7 @@ class JKActiveBalancer : public CanBattery {
   uint32_t max_discharge_W_active = 20000;
   float dis_ramp_pct_active = 3.0f;
   float dis_ramp_bottom_pct_active = 7.0f;  // SOC where discharge power reaches zero
+  uint16_t dis_cutoff_hyst_dV_active = 30;  // discharge resumes this far above the target discharge voltage
   uint32_t dis_min_power_W_active = 0;
   float chg_ramp_pct_active = 5.0f;
   uint32_t chg_min_power_W_active = 4000;

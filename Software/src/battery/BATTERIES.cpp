@@ -651,6 +651,7 @@ uint16_t user_selected_jk_recal_soc_top_dpct = 950;     // 95.0 %
 uint16_t user_selected_jk_dis_ramp_dpct = 30;           // 3.0 %
 uint16_t user_selected_jk_dis_ramp_bottom_dpct = 70;    // 7.0 %, SOC where discharge power reaches zero
 uint32_t user_selected_jk_dis_min_W = 0;
+uint16_t user_selected_jk_dis_cutoff_hyst_dV = 30;  // 3.0 V above the discharge target before discharge resumes
 uint16_t user_selected_jk_chg_ramp_dpct = 50;  // 5.0 %
 uint32_t user_selected_jk_chg_min_W = 4000;
 uint8_t user_selected_jk_max_balancers = 8;

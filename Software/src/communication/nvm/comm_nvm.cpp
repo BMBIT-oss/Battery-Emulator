@@ -168,6 +168,7 @@ void init_stored_settings() {
   user_selected_jk_dis_ramp_dpct = settings.getUInt("JKDRAMP", user_selected_jk_dis_ramp_dpct);
   user_selected_jk_dis_ramp_bottom_dpct = settings.getUInt("JKDRBOT", user_selected_jk_dis_ramp_bottom_dpct);
   user_selected_jk_dis_min_W = settings.getUInt("JKDMINW", user_selected_jk_dis_min_W);
+  user_selected_jk_dis_cutoff_hyst_dV = settings.getUInt("JKDCHYST", user_selected_jk_dis_cutoff_hyst_dV);
   user_selected_jk_chg_ramp_dpct = settings.getUInt("JKCRAMP", user_selected_jk_chg_ramp_dpct);
   user_selected_jk_chg_min_W = settings.getUInt("JKCMINW", user_selected_jk_chg_min_W);
   user_selected_jk_max_balancers = settings.getUInt("JKMAXBAL", user_selected_jk_max_balancers);

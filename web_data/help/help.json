@@ -38,6 +38,7 @@
     "JKDRAMP": "Width of the linear discharge power ramp above the ramp bottom. Full power above bottom + width.",
     "JKDRBOT": "SOC at which the discharge power reaches zero. The 8.13 firmware used a fixed 7 percent.",
     "JKDMINW": "Discharge power never drops below this inside the ramp (0 = no floor).",
+    "JKDCHYST": "Discharge stays at 0 W until the pack voltage is this far above the target discharge voltage (Battery settings). 3.0 V suits a 96S pack; use about 0.1 V for a few cells.",
     "JKCRAMP": "Width of the linear charge power ramp below SOC max. Full power below SOC max minus width.",
     "JKCMINW": "Charge power never drops below this inside the ramp, so a Deye keeps charging to the top.",
     "JKMAXBAL": "Upper limit for the number of balancers polled, 1 to 15. The cell layout decides how many are needed.",

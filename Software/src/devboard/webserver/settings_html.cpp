@@ -1213,6 +1213,9 @@ String raw_settings_processor(const String& var, BatteryEmulatorSettingsStore& s
   if (var == "JKDMINW") {
     return String(settings.getUInt("JKDMINW", user_selected_jk_dis_min_W));
   }
+  if (var == "JKDCHYST") {
+    return String(settings.getUInt("JKDCHYST", user_selected_jk_dis_cutoff_hyst_dV) / 10.0f, 1);
+  }
   if (var == "JKCRAMP") {
     return String(settings.getUInt("JKCRAMP", user_selected_jk_chg_ramp_dpct) / 10.0f, 1);
   }
@@ -2172,6 +2175,8 @@ String qnhck_zero_text(uint16_t zero_mV) {
           <input type='number' name='JKDRBOT' value="%JKDRBOT%" min="0" max="50" step="0.1" />
           <label>Discharge ramp minimum power (W): </label>
           <input type='number' name='JKDMINW' value="%JKDMINW%" min="0" max="200000" step="1" />
+          <label>Discharge cut-off hysteresis (V): </label>
+          <input type='number' name='JKDCHYST' value="%JKDCHYST%" min="0" max="50" step="0.1" />
           <label>Charge ramp width below SOC max (&#37; SOC): </label>
           <input type='number' name='JKCRAMP' value="%JKCRAMP%" min="0.5" max="20" step="0.1" />
           <label>Charge ramp minimum power (W): </label>

@@ -106,6 +106,7 @@ void JKActiveBalancer::setup(void) {
   dis_ramp_pct_active = user_selected_jk_dis_ramp_dpct / 10.0f;
   dis_ramp_bottom_pct_active = user_selected_jk_dis_ramp_bottom_dpct / 10.0f;
   dis_min_power_W_active = user_selected_jk_dis_min_W;
+  dis_cutoff_hyst_dV_active = user_selected_jk_dis_cutoff_hyst_dV;
   chg_ramp_pct_active = user_selected_jk_chg_ramp_dpct / 10.0f;
   chg_min_power_W_active = user_selected_jk_chg_min_W;
   MAX_PACK_VOLTAGE_DV = JK_SERIES_CELLS * (user_selected_jk_pack_max_mVpc / 100.0f);
@@ -463,11 +464,15 @@ void JKActiveBalancer::update_values() {
     datalayer_battery->status.max_discharge_power_W = FAULT_POWER_W;
     datalayer_battery->status.max_charge_power_W = FAULT_POWER_W;
   } else if (datalayer_battery->status.voltage_dV < discharge_cutoff_dV) {
+    // Below the discharge cut-off: no discharge, but charging stays possible so the pack can come back up
+    // (8.13 left the charge limit untouched here, which froze it at 0 W after a boot below the cut-off)
     datalayer_battery->status.max_discharge_power_W = 0;
+    datalayer_battery->status.max_charge_power_W = charge_power_limit_W(
+        max_charge_W_active, soc.getSoCPercent(), soc_cfg.soc_max_percent, chg_ramp_pct_active, chg_min_power_W_active);
   } else if (cell_deviation_mV > MAX_CELL_DEVIATION_MV + 50) {  // small buffer before we drop to FAULT_POWER_W
     datalayer_battery->status.max_discharge_power_W = FAULT_POWER_W;
     datalayer_battery->status.max_charge_power_W = FAULT_POWER_W;
-  } else if (datalayer_battery->status.voltage_dV > discharge_cutoff_dV + DISCHARGE_CUTOFF_HYSTERESIS_DV) {
+  } else if (datalayer_battery->status.voltage_dV > discharge_cutoff_dV + dis_cutoff_hyst_dV_active) {
     datalayer_battery->status.max_discharge_power_W =
         discharge_power_limit_W(max_discharge_W_active, soc.getSoCPercent(), dis_ramp_bottom_pct_active,
                                 dis_ramp_pct_active, dis_min_power_W_active);
