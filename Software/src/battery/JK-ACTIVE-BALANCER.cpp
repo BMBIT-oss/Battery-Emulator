@@ -163,6 +163,10 @@ void JKActiveBalancer::setup(void) {
   datalayer_battery->info.max_cell_voltage_deviation_mV = MAX_CELL_DEVIATION_MV;
   // The JK chemistry setting wins over the generic chemistry selector
   datalayer_battery->info.chemistry = user_selected_jk_lfp ? battery_chemistry_enum::LFP : battery_chemistry_enum::NMC;
+  // Placeholder until the pack has been read once and the coulomb counter starts: the SOC is
+  // unknown for the first seconds, and 0 % would raise a "Battery empty" event at every boot.
+  // Nothing is allowed in that window anyway (0 W, contactors not permitted).
+  datalayer_battery->status.real_soc = 5000;
 }
 
 void JKActiveBalancer::handle_incoming_can_frame(CAN_frame rx_frame) {
