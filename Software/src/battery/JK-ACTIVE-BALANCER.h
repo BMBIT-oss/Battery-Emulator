@@ -182,6 +182,11 @@ class JKActiveBalancer : public CanBattery {
   bool cab500_comm_event_raised = false;
   bool cab500_hw_event_raised = false;
   bool cells_lost_event_raised = false;
+  bool cab500_comm_warn_active = false;
+  bool balancer_comm_warn_active = false;
+  // Readings beyond the sensor's range are start-up artefacts (a CAB500 that is powering up sends zeros,
+  // which decode to -2147483 A through the 0x80000000 offset) and must never reach the coulomb counter
+  static constexpr int32_t CAB500_MAX_PLAUSIBLE_mA = 600000;  // CAB500 = 500 A sensor, overcurrent flag ~520 A
   // An alarm bit must be present in this many consecutive status frames before it latches, so a
   // garbage status byte from a balancer that is still booting cannot lock the pack until reboot
   static constexpr uint8_t ALARM_DEBOUNCE_FRAMES = 3;

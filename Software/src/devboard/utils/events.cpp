@@ -209,6 +209,9 @@ void init_events(void) {
   set_battery_event_level(EVENT_JK_CELL_COUNT_MISMATCH, EVENT_LEVEL_ERROR);
   set_battery_event_level(EVENT_JK_WIRE_RESISTANCE, EVENT_LEVEL_ERROR);
   set_battery_event_level(EVENT_JK_CONFIG_ERROR, EVENT_LEVEL_ERROR);
+  // Missed frames before the 10 s fault, cleared on their own when frames return
+  set_battery_event_level(EVENT_JK_CAB500_COMM_WARNING, EVENT_LEVEL_WARNING);
+  set_battery_event_level(EVENT_JK_BALANCER_COMM_WARNING, EVENT_LEVEL_WARNING);
   set_battery_event_level(EVENT_BATTERY_OVERHEAT, EVENT_LEVEL_ERROR);
   set_battery_event_level(EVENT_BATTERY_OVERVOLTAGE, EVENT_LEVEL_WARNING);
   set_battery_event_level(EVENT_BATTERY_UNDERVOLTAGE, EVENT_LEVEL_WARNING);
@@ -519,6 +522,12 @@ static String get_event_base_message(EVENTS_ENUM_TYPE event) {
     case EVENT_JK_CONFIG_ERROR:
       return "JK: settings are inconsistent, battery not run. Fix them on the Settings page and reboot. Data = "
              "reason code shown on More battery info";
+    case EVENT_JK_CAB500_COMM_WARNING:
+      return "JK: CAB500 current sensor missed frames for more than a second. Clears when frames return, becomes a "
+             "latched fault after 10 s";
+    case EVENT_JK_BALANCER_COMM_WARNING:
+      return "JK: a balancer did not answer a poll for more than a second. Clears when it answers, becomes a "
+             "latched fault after 10 s. Data = balancer number";
     case EVENT_BATTERY_REQUESTS_HEAT:
       return "COLD BATTERY! Battery requesting heating pads to activate!";
     case EVENT_BATTERY_WARMED_UP:

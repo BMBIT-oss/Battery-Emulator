@@ -211,8 +211,10 @@ void JKActiveBalancer::handle_incoming_can_frame(CAN_frame rx_frame) {
     if (!error_now && raw != 0xFFFFFFFFu) {
       // unsigned subtraction wraps correctly, reinterpret as signed mA
       int32_t current_mA = (int32_t)(raw - 0x80000000u);
-      ct_cab500_current_sum_A += (float)current_mA / 1000.0f;
-      ct_cab500_sample_count++;
+      if (current_mA >= -CAB500_MAX_PLAUSIBLE_mA && current_mA <= CAB500_MAX_PLAUSIBLE_mA) {
+        ct_cab500_current_sum_A += (float)current_mA / 1000.0f;
+        ct_cab500_sample_count++;
+      }
     }
     return;  // CAB500 frame fully handled
   }
@@ -404,6 +406,30 @@ void JKActiveBalancer::update_values() {
     if (balancer_comms_latched[i]) {
       comms_fault = true;
     }
+  }
+
+  // --- Missed frames below the fault threshold: warning, cleared when frames return ---
+  int first_silent_balancer = 0;
+  for (int i = 0; i < number_of_balancers; i++) {
+    if (fault_counters[i] > 0 && !balancer_comms_latched[i]) {
+      first_silent_balancer = i + 1;
+      break;
+    }
+  }
+  if (first_silent_balancer != 0 && !balancer_comm_warn_active) {
+    balancer_comm_warn_active = true;
+    set_event(EVENT_JK_BALANCER_COMM_WARNING, first_silent_balancer, battery_index);
+  } else if (first_silent_balancer == 0 && balancer_comm_warn_active) {
+    balancer_comm_warn_active = false;
+    clear_event(EVENT_JK_BALANCER_COMM_WARNING, battery_index);
+  }
+  bool cab500_silent = (ct_cab500_fault_counter > 0 && !ct_cab500_comms_fault);
+  if (cab500_silent && !cab500_comm_warn_active) {
+    cab500_comm_warn_active = true;
+    set_event(EVENT_JK_CAB500_COMM_WARNING, ct_cab500_fault_counter, battery_index);
+  } else if (!cab500_silent && cab500_comm_warn_active) {
+    cab500_comm_warn_active = false;
+    clear_event(EVENT_JK_CAB500_COMM_WARNING, battery_index);
   }
 
   // CAB500 faults join the same safe-state logic: dead sensor -> comms_fault,
