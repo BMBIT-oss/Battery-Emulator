@@ -89,10 +89,11 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
       content += "</h4><h4>Max Balance Current: " + String(jk_dl->max_balance_current_mA[i]) + " mA</h4>";
       content += "<h4>Communication Faults: " + String(jk_dl->fault_counters[i]) + "</h4>";
       content += "<h4>Cell Count Mismatch: ";
-      content += jk_dl->cell_count_mismatch_alarm[i] ? "<span style='color:red;'>ALARM</span>"
-                                                     : "<span style='color:lightgreen;'>OK</span>";
+      content += jk_dl->cell_count_mismatch_alarm[i]
+                     ? "<span style='color:red;'>ALARM (latched, reboot to clear)</span>"
+                     : "<span style='color:lightgreen;'>OK</span>";
       content += "</h4><h4>Wire Resistance: ";
-      content += jk_dl->wire_resistance_alarm[i] ? "<span style='color:red;'>ALARM</span>"
+      content += jk_dl->wire_resistance_alarm[i] ? "<span style='color:red;'>ALARM (latched, reboot to clear)</span>"
                                                  : "<span style='color:lightgreen;'>OK</span>";
       content += "</h4></div>";
     }

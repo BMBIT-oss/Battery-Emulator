@@ -170,6 +170,10 @@ class JKActiveBalancer : public CanBattery {
   unsigned long last_request_millis[MAX_BALANCERS] = {0};
   unsigned long last_response_millis[MAX_BALANCERS] = {0};
   int fault_counters[MAX_BALANCERS] = {0};
+  // Balancer hardware alarms latch until reboot (a flapping cell tap must not bring the pack back on its own).
+  // The CAB500 hardware error latches the same way.
+  bool cell_count_alarm_latched[MAX_BALANCERS] = {false};
+  bool wire_alarm_latched[MAX_BALANCERS] = {false};
 
   // --- CAB500 state ---
   float ct_cab500_current_sum_A = 0.0f;  // Accumulator for averaging between SOC ticks

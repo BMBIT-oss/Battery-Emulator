@@ -291,12 +291,17 @@ void JKActiveBalancer::update_values() {
     return;
   }
 
-  // --- Hardware alarms from any balancer ---
+  // --- Hardware alarms from any balancer, latched until reboot ---
   bool hardware_alarm = false;
   for (int i = 0; i < number_of_balancers; i++) {
-    if (balancers[i].alarm_cell_count_mismatch || balancers[i].alarm_wire_resistance) {
+    if (balancers[i].alarm_cell_count_mismatch) {
+      cell_count_alarm_latched[i] = true;
+    }
+    if (balancers[i].alarm_wire_resistance) {
+      wire_alarm_latched[i] = true;
+    }
+    if (cell_count_alarm_latched[i] || wire_alarm_latched[i]) {
       hardware_alarm = true;
-      break;
     }
   }
 
@@ -414,8 +419,8 @@ void JKActiveBalancer::update_values() {
     datalayer_jk->balance_switch_status[i] = balancers[i].balance_switch_on;
     datalayer_jk->charge_balancing_status[i] = balancers[i].is_charge_balancing;
     datalayer_jk->discharge_balancing_status[i] = balancers[i].is_discharge_balancing;
-    datalayer_jk->cell_count_mismatch_alarm[i] = balancers[i].alarm_cell_count_mismatch;
-    datalayer_jk->wire_resistance_alarm[i] = balancers[i].alarm_wire_resistance;
+    datalayer_jk->cell_count_mismatch_alarm[i] = cell_count_alarm_latched[i];
+    datalayer_jk->wire_resistance_alarm[i] = wire_alarm_latched[i];
   }
   datalayer_jk->ct_cab500_comms_fault = ct_cab500_comms_fault;
   datalayer_jk->ct_cab500_hardware_error = ct_cab500_hardware_error;
