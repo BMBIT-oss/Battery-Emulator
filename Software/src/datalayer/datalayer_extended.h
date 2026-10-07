@@ -931,6 +931,9 @@ struct DATALAYER_INFO_JK_ACTIVE_BALANCER {
   /** int16_t / uint16_t */
   int16_t balancer_temperatures_dC[MAX_BALANCERS_WEB];
   uint16_t max_balance_current_mA[MAX_BALANCERS_WEB];
+  /** CAB500 CAN speed reconfiguration: requested speed and the speed the sensor was found at, in kbps */
+  uint16_t ct_cab500_speed_target_kbps;
+  uint16_t ct_cab500_speed_found_kbps;
 
   /** uint8_t */
   /** JKConfigError from setup(): 0 = OK, otherwise the layout settings are inconsistent and the battery is not run */
@@ -938,6 +941,8 @@ struct DATALAYER_INFO_JK_ACTIVE_BALANCER {
   /** Raw CAB500 error byte captured when the hardware error latched
    * (0x41 overcurrent, 0x42 ref voltage, 0x44 signal lost, 0x46 supply voltage) */
   uint8_t ct_cab500_error_code;
+  /** JKCab500SpeedState: progress / result of the CAB500 CAN speed reconfiguration */
+  uint8_t ct_cab500_speed_state;
 
   /** bool */
   bool is_connected[MAX_BALANCERS_WEB];

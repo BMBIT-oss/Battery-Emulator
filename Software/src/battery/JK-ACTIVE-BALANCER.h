@@ -61,6 +61,9 @@ class JKActiveBalancer : public CanBattery {
   bool soc_plausible();
   // Reset the coulomb-counter cycle counter (SOH returns to 100 %). Applied in update_values().
   void reset_cycles() { cycles_reset_request = true; }
+  // CAB500 CAN speed reconfiguration (UDS over the battery bus), runs as a state machine in transmit_can()
+  bool supports_cab500_speed_change() { return true; }
+  void request_cab500_speed_change(uint16_t kbps) { cab500_speed_request_kbps = kbps; }
 
   static constexpr int MAX_BALANCERS = 15;           // CAN address is ID & 0x0F -> 1..15
   static constexpr int MAX_CELLS_PER_BALANCER = 24;  // Hardware maximum
@@ -83,6 +86,20 @@ class JKActiveBalancer : public CanBattery {
   static constexpr uint32_t CAB500_CAN_ID = 0x3C2;
   static constexpr unsigned long CAB500_BOOT_GRACE_MS = 30000;     // No fault counting for the first 30 s
   static constexpr unsigned long CAB500_ERROR_PERSIST_MS = 10000;  // ERROR_INDICATION must persist 10 s to latch
+
+  // CAB500 UDS diagnostics (speed reconfiguration): request ID 0x68D, reply ID 0x68E, DID 0xF012 = CAN speed
+  static constexpr uint32_t CAB500_UDS_TX_ID = 0x68D;
+  static constexpr uint32_t CAB500_UDS_RX_ID = 0x68E;
+  static constexpr unsigned long CAB500_DETECT_LISTEN_MS = 2000;  // per candidate speed
+  static constexpr unsigned long CAB500_UDS_TIMEOUT_MS = 1000;
+  static constexpr unsigned long CAB500_WRITE_SETTLE_MS = 1000;  // datasheet: >= 1 s after the write
+  static constexpr unsigned long CAB500_RESET_REPLY_MS = 300;    // the reset answer may be lost
+  static constexpr unsigned long CAB500_REBOOT_MS = 1500;
+  void cab500_speed_machine(unsigned long currentMillis);
+  void cab500_speed_enter(uint8_t state, unsigned long now);
+  void cab500_speed_finish(uint8_t state, unsigned long now);
+  void cab500_send_uds(uint8_t dlc, uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5);
+  static CAN_Speed kbps_to_can_speed(uint16_t kbps);
 
   static uint32_t discharge_power_limit_W(uint32_t max_power_W, float soc_pct, float bottom_soc_pct,
                                           float ramp_width_pct, uint32_t min_power_W);
@@ -165,6 +182,18 @@ class JKActiveBalancer : public CanBattery {
   uint8_t ct_cab500_error_code = 0;       // Latched raw error byte (0x41/0x42/0x44/0x46)
   int ct_cab500_fault_counter = 0;        // 1 per silent second, increment-only like the balancers
   bool ct_cab500_comms_fault = false;
+
+  // --- CAB500 speed reconfiguration state ---
+  volatile uint16_t cab500_speed_request_kbps = 0;  // set by the web task, consumed in transmit_can()
+  uint16_t cab500_speed_target_kbps = 0;
+  uint16_t cab500_speed_found_kbps = 0;
+  uint8_t cab500_speed_state = 0;  // JKCab500SpeedState
+  uint8_t cab500_detect_index = 0;
+  uint32_t cab500_frames_seen = 0;  // 0x3C2 frames received, counted in every state
+  uint32_t cab500_frames_mark = 0;  // cab500_frames_seen when the current state was entered
+  unsigned long cab500_state_since = 0;
+  uint8_t cab500_uds_reply_sid = 0;    // service id of the last 0x68E reply, 0x7F = negative response
+  uint16_t cab500_uds_reply_kbps = 0;  // speed read back by ReadDataByIdentifier 0xF012
 
   CAN_frame JK_REQUEST_FRAME = {.FD = false, .ext_ID = false, .DLC = 1, .ID = 0x01, .data = {0xFF}};
 

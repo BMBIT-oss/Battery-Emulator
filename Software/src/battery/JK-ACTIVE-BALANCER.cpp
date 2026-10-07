@@ -163,12 +163,22 @@ void JKActiveBalancer::setup(void) {
 }
 
 void JKActiveBalancer::handle_incoming_can_frame(CAN_frame rx_frame) {
-  if (config_error != JK_CFG_OK) {
-    return;  // settings are inconsistent, battery not run
+  // --- CAB500 UDS reply (speed reconfiguration), consumed by cab500_speed_machine() ---
+  if (!rx_frame.ext_ID && rx_frame.ID == CAB500_UDS_RX_ID && rx_frame.DLC >= 2) {
+    uint8_t sid = rx_frame.data.u8[1];
+    cab500_uds_reply_sid = sid;
+    if (sid == 0x62 && rx_frame.DLC >= 6 && rx_frame.data.u8[2] == 0xF0 && rx_frame.data.u8[3] == 0x12) {
+      cab500_uds_reply_kbps = ((uint16_t)rx_frame.data.u8[4] << 8) | rx_frame.data.u8[5];
+    }
+    return;
   }
 
   // --- CAB500 current sensor frame (must be checked BEFORE the balancer ID filter below) ---
   if (!rx_frame.ext_ID && rx_frame.ID == CAB500_CAN_ID && rx_frame.DLC == 8) {
+    cab500_frames_seen++;  // also counted while searching the sensor at other bus speeds
+    if (config_error != JK_CFG_OK) {
+      return;  // settings are inconsistent, battery not run
+    }
     ct_cab500_last_frame_millis = millis();
     ct_cab500_fault_counter = 0;  // Same behavior as balancers: counter resets on any valid frame
 
@@ -198,6 +208,10 @@ void JKActiveBalancer::handle_incoming_can_frame(CAN_frame rx_frame) {
       ct_cab500_sample_count++;
     }
     return;  // CAB500 frame fully handled
+  }
+
+  if (config_error != JK_CFG_OK) {
+    return;  // settings are inconsistent, battery not run
   }
 
   if ((rx_frame.ID & 0x7F0) != 0) {
@@ -474,6 +488,31 @@ void JKActiveBalancer::update_values() {
 }
 
 void JKActiveBalancer::transmit_can(unsigned long currentMillis) {
+  // --- CAB500 speed reconfiguration: while it runs the bus is not at the balancer speed, so nothing else is sent ---
+  if (cab500_speed_state != JK_CAB500_SPD_IDLE && cab500_speed_state < JK_CAB500_SPD_DONE) {
+    cab500_speed_machine(currentMillis);
+    return;
+  }
+  if (cab500_speed_request_kbps != 0) {
+    uint16_t kbps = cab500_speed_request_kbps;
+    cab500_speed_request_kbps = 0;
+    if (kbps == 125 || kbps == 250 || kbps == 500) {
+      bool contactors_closed = (battery_index == 1)   ? (datalayer.system.status.contactors_engaged == 1)
+                               : (battery_index == 2) ? datalayer.system.status.contactors_battery2_engaged
+                                                      : datalayer.system.status.contactors_battery3_engaged;
+      cab500_speed_target_kbps = kbps;
+      cab500_speed_found_kbps = 0;
+      if (contactors_closed) {
+        cab500_speed_enter(JK_CAB500_SPD_REFUSED, currentMillis);  // bus speed never changed, nothing to restore
+      } else {
+        cab500_detect_index = 0;
+        change_can_speed(CAN_Speed::CAN_SPEED_500KBPS);  // first candidate, the factory speed
+        cab500_speed_enter(JK_CAB500_SPD_DETECT, currentMillis);
+        return;
+      }
+    }
+  }
+
   if (config_error != JK_CFG_OK) {
     return;  // settings are inconsistent, battery not run
   }
@@ -536,6 +575,115 @@ void JKActiveBalancer::transmit_can(unsigned long currentMillis) {
     }
     // else: no fresh samples (fault/grace) -> keep last known BMS_current_A
     soc.update(BMS_cell_max_mV, BMS_cell_min_mV, BMS_current_A);
+  }
+}
+
+// --- CAB500 CAN speed reconfiguration ---
+// Sequence from the CAB500 diagnostic notes: at the sensor's current speed send WriteDataByIdentifier
+// 0xF012 (05 2E F0 12 hi lo), wait >= 1 s, send ECUReset HardReset (02 11 01), switch the bus to the
+// new speed and optionally confirm with ReadDataByIdentifier 0xF012 (03 22 F0 12 -> 05 62 F0 12 hi lo).
+// Speed bytes: 125 kbps = 00 7D, 250 kbps = 00 FA, 500 kbps = 01 F4.
+
+CAN_Speed JKActiveBalancer::kbps_to_can_speed(uint16_t kbps) {
+  switch (kbps) {
+    case 125:
+      return CAN_Speed::CAN_SPEED_125KBPS;
+    case 500:
+      return CAN_Speed::CAN_SPEED_500KBPS;
+    default:
+      return CAN_Speed::CAN_SPEED_250KBPS;
+  }
+}
+
+void JKActiveBalancer::cab500_send_uds(uint8_t dlc, uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4,
+                                       uint8_t b5) {
+  CAN_frame frame = {
+      .FD = false, .ext_ID = false, .DLC = dlc, .ID = CAB500_UDS_TX_ID, .data = {b0, b1, b2, b3, b4, b5}};
+  cab500_uds_reply_sid = 0;
+  cab500_uds_reply_kbps = 0;
+  transmit_can_frame(&frame);
+}
+
+void JKActiveBalancer::cab500_speed_enter(uint8_t state, unsigned long now) {
+  cab500_speed_state = state;
+  cab500_state_since = now;
+  cab500_frames_mark = cab500_frames_seen;
+  datalayer_jk->ct_cab500_speed_state = state;
+  datalayer_jk->ct_cab500_speed_target_kbps = cab500_speed_target_kbps;
+  datalayer_jk->ct_cab500_speed_found_kbps = cab500_speed_found_kbps;
+}
+
+// Terminal state: the bus goes back to the balancer speed and normal operation resumes
+void JKActiveBalancer::cab500_speed_finish(uint8_t state, unsigned long now) {
+  reset_can_speed();
+  ct_cab500_last_frame_millis = now;  // no comms faults for the time the bus was elsewhere
+  cab500_speed_enter(state, now);
+}
+
+void JKActiveBalancer::cab500_speed_machine(unsigned long now) {
+  static const uint16_t candidates[3] = {500, 250, 125};
+  const uint8_t speed_hi = (cab500_speed_target_kbps >> 8) & 0xFF;
+  const uint8_t speed_lo = cab500_speed_target_kbps & 0xFF;
+
+  switch (cab500_speed_state) {
+    case JK_CAB500_SPD_DETECT:
+      if (cab500_frames_seen != cab500_frames_mark) {  // the 0x3C2 stream is visible at this speed
+        cab500_speed_found_kbps = candidates[cab500_detect_index];
+        cab500_send_uds(6, 0x05, 0x2E, 0xF0, 0x12, speed_hi, speed_lo);  // WriteDataByIdentifier 0xF012
+        cab500_speed_enter(JK_CAB500_SPD_WRITE, now);
+      } else if (now - cab500_state_since >= CAB500_DETECT_LISTEN_MS) {
+        cab500_detect_index++;
+        if (cab500_detect_index >= 3) {
+          cab500_speed_finish(JK_CAB500_SPD_NOT_FOUND, now);
+        } else {
+          change_can_speed(kbps_to_can_speed(candidates[cab500_detect_index]));
+          cab500_speed_enter(JK_CAB500_SPD_DETECT, now);
+        }
+      }
+      break;
+
+    case JK_CAB500_SPD_WRITE:
+      if (cab500_uds_reply_sid == 0x6E) {  // positive response
+        cab500_speed_enter(JK_CAB500_SPD_PAUSE, now);
+      } else if (cab500_uds_reply_sid == 0x7F || now - cab500_state_since >= CAB500_UDS_TIMEOUT_MS) {
+        cab500_speed_finish(JK_CAB500_SPD_WRITE_FAILED, now);
+      }
+      break;
+
+    case JK_CAB500_SPD_PAUSE:
+      if (now - cab500_state_since >= CAB500_WRITE_SETTLE_MS) {
+        cab500_send_uds(3, 0x02, 0x11, 0x01, 0x00, 0x00, 0x00);  // ECUReset HardReset
+        cab500_speed_enter(JK_CAB500_SPD_RESET, now);
+      }
+      break;
+
+    case JK_CAB500_SPD_RESET:
+      if (cab500_uds_reply_sid == 0x51 || now - cab500_state_since >= CAB500_RESET_REPLY_MS) {
+        change_can_speed(kbps_to_can_speed(cab500_speed_target_kbps));
+        cab500_speed_enter(JK_CAB500_SPD_REBOOT, now);
+      }
+      break;
+
+    case JK_CAB500_SPD_REBOOT:
+      if (now - cab500_state_since >= CAB500_REBOOT_MS) {
+        cab500_send_uds(4, 0x03, 0x22, 0xF0, 0x12, 0x00, 0x00);  // ReadDataByIdentifier 0xF012
+        cab500_speed_enter(JK_CAB500_SPD_VERIFY, now);
+      }
+      break;
+
+    case JK_CAB500_SPD_VERIFY:
+      if (cab500_uds_reply_sid == 0x62 && cab500_uds_reply_kbps == cab500_speed_target_kbps) {
+        cab500_speed_finish(JK_CAB500_SPD_DONE, now);
+      } else if (now - cab500_state_since >= CAB500_UDS_TIMEOUT_MS) {
+        // No readback: the 0x3C2 stream at the new speed is confirmation enough
+        bool stream_seen = (cab500_frames_seen != cab500_frames_mark);
+        cab500_speed_finish(stream_seen ? JK_CAB500_SPD_DONE : JK_CAB500_SPD_UNVERIFIED, now);
+      }
+      break;
+
+    default:
+      cab500_speed_finish(JK_CAB500_SPD_IDLE, now);
+      break;
   }
 }
 

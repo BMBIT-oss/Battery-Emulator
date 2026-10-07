@@ -175,6 +175,10 @@ class Battery {
   // datalayer status insulation_resistance_kOhm
   virtual bool supports_insulation_resistance() { return false; }
 
+  // --- JK Active Balancer --- CAB500 current sensor CAN speed reconfiguration (UDS over the battery bus)
+  virtual bool supports_cab500_speed_change() { return false; }
+  virtual void request_cab500_speed_change(uint16_t kbps) {}
+
   virtual BatteryHtmlRenderer& get_status_renderer() { return defaultRenderer; }
 
   /* Which pack this instance drives: 1, 2 or 3. The same driver code serves every pack, so a

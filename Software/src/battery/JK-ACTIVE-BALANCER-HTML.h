@@ -1,9 +1,28 @@
 #ifndef _JK_ACTIVE_BALANCER_HTML_H
 #define _JK_ACTIVE_BALANCER_HTML_H
 
+#include <cstring>
+
 #include "../datalayer/datalayer.h"
 #include "../datalayer/datalayer_extended.h"
 #include "../devboard/webserver/BatteryHtmlRenderer.h"
+
+/* Progress / result of the CAB500 CAN speed reconfiguration, published by the driver in
+   ct_cab500_speed_state. Shared by the driver state machine and the status page. */
+enum JKCab500SpeedState : uint8_t {
+  JK_CAB500_SPD_IDLE = 0,
+  JK_CAB500_SPD_DETECT = 1,        // listening for the 0x3C2 stream at 500 / 250 / 125 kbps
+  JK_CAB500_SPD_WRITE = 2,         // WriteDataByIdentifier 0xF012 sent, waiting for the answer
+  JK_CAB500_SPD_PAUSE = 3,         // datasheet: wait >= 1 s after the write
+  JK_CAB500_SPD_RESET = 4,         // ECUReset sent
+  JK_CAB500_SPD_REBOOT = 5,        // bus switched to the new speed, sensor rebooting
+  JK_CAB500_SPD_VERIFY = 6,        // ReadDataByIdentifier 0xF012 sent at the new speed
+  JK_CAB500_SPD_DONE = 7,          // confirmed
+  JK_CAB500_SPD_NOT_FOUND = 8,     // no 0x3C2 stream at any speed
+  JK_CAB500_SPD_WRITE_FAILED = 9,  // negative response or no answer to the write
+  JK_CAB500_SPD_UNVERIFIED = 10,   // write accepted but nothing seen at the new speed
+  JK_CAB500_SPD_REFUSED = 11,      // contactors closed
+};
 
 class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
  public:
@@ -11,6 +30,16 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
       : battery_dl(battery_dl), jk_dl(dl) {}
 
   bool renders_own_battery_data() { return true; }
+
+  // The CAB500 speed buttons get a heading of their own above the first one
+  String get_command_prefix_html(const char* identifier) {
+    String content;
+    if (jk_dl && strcmp(identifier, "cab500Speed125") == 0) {
+      content += "<h4>CAB500 CAN speed (new sensors ship at 500 kbps, this driver needs 250 kbps). ";
+      content += "Open the contactors first; the battery bus is switched for about 10 s.</h4>";
+    }
+    return content;
+  }
 
   String get_status_html() {
     CheckedHtml content;
@@ -101,7 +130,9 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
       content += dtc_text;
       content += "</span></h4>";
     }
-    content += "</div>";
+    content += "<h4>CAN speed change: ";
+    content += cab500_speed_text();
+    content += "</h4></div>";
 
     // --- Coulomb counter ---
     content += "<h4>BMS Cycles: " + String(jk_dl->BMS_Cycles) + "</h4>";
@@ -121,6 +152,36 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
  private:
   DATALAYER_BATTERY_TYPE* battery_dl;
   DATALAYER_INFO_JK_ACTIVE_BALANCER* jk_dl;
+
+  String cab500_speed_text() {
+    String target = String(jk_dl->ct_cab500_speed_target_kbps) + " kbps";
+    String found = String(jk_dl->ct_cab500_speed_found_kbps) + " kbps";
+    switch (jk_dl->ct_cab500_speed_state) {
+      case JK_CAB500_SPD_IDLE:
+        return "not run";
+      case JK_CAB500_SPD_DETECT:
+        return "searching the sensor at 500 / 250 / 125 kbps, refresh the page";
+      case JK_CAB500_SPD_WRITE:
+      case JK_CAB500_SPD_PAUSE:
+      case JK_CAB500_SPD_RESET:
+      case JK_CAB500_SPD_REBOOT:
+      case JK_CAB500_SPD_VERIFY:
+        return "sensor found at " + found + ", setting " + target + ", refresh the page";
+      case JK_CAB500_SPD_DONE:
+        return "<span style='color:lightgreen;'>done, sensor now at " + target + " (was at " + found + ")</span>";
+      case JK_CAB500_SPD_NOT_FOUND:
+        return "<span style='color:red;'>failed, no CAB500 stream found at 500, 250 or 125 kbps</span>";
+      case JK_CAB500_SPD_WRITE_FAILED:
+        return "<span style='color:red;'>failed, sensor found at " + found + " but it did not accept the write</span>";
+      case JK_CAB500_SPD_UNVERIFIED:
+        return "<span style='color:orange;'>write accepted, but nothing seen at " + target +
+               " yet. Power-cycle the sensor and check the status above</span>";
+      case JK_CAB500_SPD_REFUSED:
+        return "<span style='color:red;'>refused, open the contactors first</span>";
+      default:
+        return "unknown";
+    }
+  }
 };
 
 #endif
