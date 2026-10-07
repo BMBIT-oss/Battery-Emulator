@@ -716,8 +716,7 @@ void init_webserver() {
           // LEAFAUTOOFS and GTWRHD (whose boot fallback is the driver global).
           bool default_value = false;
           if (std::string(boolSetting) == std::string("WIFIAPENABLED") ||
-              std::string(boolSetting) == std::string("LEAFAUTOOFS") ||
-              std::string(boolSetting) == std::string("JKLOWV")) {  // JK low-voltage mode boots true
+              std::string(boolSetting) == std::string("LEAFAUTOOFS")) {
             default_value = true;
           } else if (std::string(boolSetting) == std::string("GTWRHD")) {
             default_value = user_selected_tesla_GTW_rightHandDrive;

@@ -2252,7 +2252,7 @@ String qnhck_zero_text(uint16_t zero_mV) {
         (function() {
           var lfp = document.getElementById('JKLFP');
           var ids = ['JKCELLMAX','JKCELLMIN','JKCELLDEV','JKPACKMAX','JKPACKMIN','JKVFON','JKVFOFF','JKVEMON','JKVEMOFF'];
-          var ncm = [4250,2700,150,4190,2900,4130,4100,3350,3400];
+          var ncm = [4220,2700,150,4190,2900,4130,4100,3350,3400];
           var lfpv = [3650,2800,230,3510,3000,3420,3350,2900,3050];
           if (lfp) { lfp.addEventListener('change', function() {
             var v = lfp.checked ? lfpv : ncm;

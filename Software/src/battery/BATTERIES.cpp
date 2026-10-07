@@ -638,7 +638,7 @@ int user_selected_daly_power_per_dV_start = 20;
 int user_selected_daly_power_per_degree_C = 60;
 int user_selected_daly_power_at_0_degree_C = 800;
 // --- JK Active Balancer ---
-/* User-selected JK Active Balancer settings, defaults = 8.13 first-boot values (NCM) */
+/* User-selected JK Active Balancer settings (NCM). Layout defaults: 96S, 4 balancers x 24 cells, series, V11.56 */
 uint32_t user_selected_jk_max_charge_W = 20000;
 uint32_t user_selected_jk_max_discharge_W = 20000;
 uint16_t user_selected_jk_soc_max_dpct = 990;  // 99.0 %
@@ -656,7 +656,7 @@ uint32_t user_selected_jk_chg_min_W = 4000;
 uint8_t user_selected_jk_max_balancers = 8;
 bool user_selected_jk_reverse_current = false;
 bool user_selected_jk_lfp = false;
-uint16_t user_selected_jk_cell_max_mV = 4250;
+uint16_t user_selected_jk_cell_max_mV = 4220;
 uint16_t user_selected_jk_cell_min_mV = 2700;
 uint16_t user_selected_jk_cell_dev_mV = 150;
 uint16_t user_selected_jk_pack_max_mVpc = 4190;
@@ -665,11 +665,11 @@ uint16_t user_selected_jk_vfull_on_mV = 4130;
 uint16_t user_selected_jk_vfull_off_mV = 4100;
 uint16_t user_selected_jk_vempty_on_mV = 3350;
 uint16_t user_selected_jk_vempty_off_mV = 3400;
-uint8_t user_selected_jk_cells = 24;
-uint8_t user_selected_jk_cells_per_balancer = 12;
-bool user_selected_jk_low_voltage = true;
+uint8_t user_selected_jk_cells = 96;
+uint8_t user_selected_jk_cells_per_balancer = 24;
+bool user_selected_jk_low_voltage = false;
 bool user_selected_jk_bridge = false;
-uint8_t user_selected_jk_fw_version = 1;
+uint8_t user_selected_jk_fw_version = 2;
 uint16_t user_selected_jk_fw_mask = 0xF000;
 /* User-selected EGMP+others settings */
 bool user_selected_use_estimated_SOC = false;

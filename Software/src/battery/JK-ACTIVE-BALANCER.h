@@ -140,21 +140,21 @@ class JKActiveBalancer : public CanBattery {
   bool reverse_current_active = false;
 
   // Pack layout from the settings, copied at boot in setup()
-  int JK_NUMBER_OF_CELLS = 24;
-  int JK_CELLS_BALANCER = 12;
-  int JK_BRIDGE_CELLS = 11;  // Usable cells per balancer in bridge mode (1 tap sacrificed for the bridge)
-  int JK_SERIES_CELLS = 12;  // Electrical series count: one pack in low-voltage mode, all cells otherwise
+  int JK_NUMBER_OF_CELLS = 96;
+  int JK_CELLS_BALANCER = 24;
+  int JK_BRIDGE_CELLS = 23;  // Usable cells per balancer in bridge mode (1 tap sacrificed for the bridge)
+  int JK_SERIES_CELLS = 96;  // Electrical series count: one pack in low-voltage mode, all cells otherwise
   bool JK_BRIDGE_MODE = false;
-  bool JK_BALANCER_LOW_VOLTAGE = true;  // Parallel packs, one balancer per pack
-  uint8_t JK_FW_VERSION = 1;
+  bool JK_BALANCER_LOW_VOLTAGE = false;  // Parallel packs, one balancer per pack
+  uint8_t JK_FW_VERSION = 2;
   uint16_t JK_FW_MASK = 0xF000;
   uint8_t config_error = JK_CFG_OK;
 
   // Protection limits from the settings, copied at boot
-  float MAX_PACK_VOLTAGE_DV = 12 * 41.9f;  // deciVolt, series cells x mV per cell / 100
-  float MIN_PACK_VOLTAGE_DV = 12 * 29.0f;
+  float MAX_PACK_VOLTAGE_DV = 96 * 41.9f;  // deciVolt, series cells x mV per cell / 100
+  float MIN_PACK_VOLTAGE_DV = 96 * 29.0f;
   uint16_t MAX_CELL_DEVIATION_MV = 150;
-  uint16_t MAX_CELL_VOLTAGE_MV = 4250;
+  uint16_t MAX_CELL_VOLTAGE_MV = 4220;
   uint16_t MIN_CELL_VOLTAGE_MV = 2700;
 
   // Power limits / ramps from the settings, copied at boot
