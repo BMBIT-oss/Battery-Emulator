@@ -939,6 +939,8 @@ struct DATALAYER_INFO_JK_ACTIVE_BALANCER {
   /** CAB500 CAN speed reconfiguration: requested speed and the speed the sensor was found at, in kbps */
   uint16_t ct_cab500_speed_target_kbps;
   uint16_t ct_cab500_speed_found_kbps;
+  /** CAN frame ID of the CAB500 this pack listens to (0x3C0..0x3C5, from the settings) */
+  uint16_t ct_cab500_can_id;
 
   /** uint8_t */
   /** JKConfigError from setup(): 0 = OK, otherwise the layout settings are inconsistent and the battery is not run */

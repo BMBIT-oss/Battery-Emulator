@@ -117,7 +117,8 @@ void JKActiveBalancer::setup(void) {
   MAX_CELL_VOLTAGE_MV = user_selected_jk_cell_max_mV;
   MIN_CELL_VOLTAGE_MV = user_selected_jk_cell_min_mV;
   reverse_current_active = user_selected_jk_reverse_current;
-  cab500_can_id = user_selected_jk_cab500_can_id;
+  cab500_can_id = (battery_index == 2) ? user_selected_jk2_cab500_can_id : user_selected_jk_cab500_can_id;
+  datalayer_jk->ct_cab500_can_id = cab500_can_id;
   max_balancers_active = user_selected_jk_max_balancers;
   if (max_balancers_active < 1 || max_balancers_active > MAX_BALANCERS) {
     max_balancers_active = 8;

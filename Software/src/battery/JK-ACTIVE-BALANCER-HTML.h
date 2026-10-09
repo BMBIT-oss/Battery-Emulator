@@ -7,9 +7,6 @@
 #include "../datalayer/datalayer_extended.h"
 #include "../devboard/webserver/BatteryHtmlRenderer.h"
 
-// CAB500 variant frame ID (Settings page), shown in the sensor block title
-extern uint16_t user_selected_jk_cab500_can_id;
-
 /* Progress / result of the CAB500 CAN speed reconfiguration, published by the driver in
    ct_cab500_speed_state. Shared by the driver state machine and the status page. */
 enum JKCab500SpeedState : uint8_t {
@@ -104,7 +101,7 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
 
     // --- CAB500 CAN current sensor ---
     content += "<div style='background-color: #404E57; padding: 10px; margin-bottom: 10px; border-radius: 20px;'>";
-    content += "<h4>CAB500 CT Sensor (CAN 0x" + String(user_selected_jk_cab500_can_id, HEX) + ")</h4><h4>Status: ";
+    content += "<h4>CAB500 CT Sensor (CAN 0x" + String(jk_dl->ct_cab500_can_id, HEX) + ")</h4><h4>Status: ";
     content += jk_dl->ct_cab500_is_connected ? "<span style='color:lightgreen;'>Connected</span>"
                                              : "<span style='color:red;'>Disconnected</span>";
     content += "</h4><h4>Communication: ";
