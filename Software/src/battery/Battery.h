@@ -63,7 +63,8 @@ enum class BatteryType {
   Akasol = 56,
   GrowattLv = 57,
   StellantisProOne = 58,
-  JkActiveBalancer = 59,
+  BYDBatteryBoxPremium = 59,
+  JkActiveBalancer = 60,
   Highest
 };
 

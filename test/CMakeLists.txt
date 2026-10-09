@@ -1,0 +1,221 @@
+cmake_minimum_required(VERSION 3.28)
+enable_testing()
+
+# set the project name
+project(UnitTests)
+
+# Enable ExternalProject CMake module
+include(ExternalProject)
+include(GoogleTest)
+
+# specify the C++ standard
+# At least 17 is required by Gtest
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# Download and install GoogleTest
+ExternalProject_Add(
+    gtest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gtest
+    # Disable install step
+    INSTALL_COMMAND ""
+)
+
+# Get GTest source and binary directories from CMake project
+ExternalProject_Get_Property(gtest source_dir binary_dir)
+
+# Create a libgtest target to be used as a dependency by test programs
+add_library(libgtest IMPORTED STATIC GLOBAL)
+add_dependencies(libgtest gtest)
+add_definitions(-DUNIT_TEST)
+
+# Set libgtest properties
+if(WIN32)
+    set_target_properties(libgtest PROPERTIES
+        "IMPORTED_LOCATION" "${binary_dir}/lib/Debug/gtest.lib"
+        "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}")
+else()
+    set_target_properties(libgtest PROPERTIES
+        "IMPORTED_LOCATION" "${binary_dir}/lib/libgtest.a"
+        "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}")
+endif(WIN32)
+
+# Create a libgmock target to be used as a dependency by test programs
+add_library(libgmock IMPORTED STATIC GLOBAL)
+add_dependencies(libgmock gtest)
+
+# Set libgmock properties
+if(WIN32)
+    set_target_properties(libgmock PROPERTIES
+        "IMPORTED_LOCATION" "${binary_dir}/lib/Debug/gmock.lib"
+        "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}")
+else()
+    set_target_properties(libgmock PROPERTIES
+        "IMPORTED_LOCATION" "${binary_dir}/lib/libgmock.a"
+        "IMPORTED_LINK_INTERFACE_LIBRARIES" "${CMAKE_THREAD_LIBS_INIT}")
+endif(WIN32)
+
+# I couldn't make it work with INTERFACE_INCLUDE_DIRECTORIES
+include_directories("${source_dir}/googletest/include"
+                    "${source_dir}/googlemock/include")
+
+include_directories(emul)
+
+# For eModBus
+add_compile_definitions(ESP32 HW_LILYGO COMMON_IMAGE)
+
+# The test sources are globbed. They were a hand-written list, which put every
+# branch that adds a test file in conflict with every other one - the list is
+# the only thing they all touch - for no benefit: a new test file appears in the
+# diff as a new file whether or not a line here accompanies it.
+#
+# CONFIGURE_DEPENDS re-globs at build time, so a newly added file is picked up
+# without re-running cmake by hand. The filter drops the leftovers of an
+# in-source `cmake -B build` inside test/, which are not sources.
+# Some firmware sources include headers as "src/...", which PlatformIO resolves
+# from its src_dir (Software/). Give the test build the same root.
+include_directories(../Software)
+
+file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+list(FILTER TEST_SOURCES EXCLUDE REGEX "/build/")
+
+# The firmware sources stay an explicit, curated list, and must. It is not
+# "every file under Software/src" - it is the subset that links in a host build.
+# Software.cpp, the webserver and anything reaching for FS.h, ip_addr or the
+# async server are deliberately absent, and globbing here would drag them in and
+# silently change what is under test whenever upstream adds a driver.
+add_executable(tests
+    ${TEST_SOURCES}
+    ../Software/src/devboard/safety/parallel_safety.cpp
+    ../Software/src/communication/contactorcontrol/comm_contactorcontrol.cpp
+    ../Software/src/communication/precharge_control/precharge_control.cpp
+    ../Software/src/communication/rs485/comm_rs485.cpp
+    ../Software/src/devboard/safety/safety.cpp
+    ../Software/src/devboard/hal/hal.cpp
+    ../Software/src/devboard/utils/types.cpp
+    ../Software/src/devboard/utils/events.cpp
+    ../Software/src/devboard/utils/time_format.cpp
+    ../Software/src/devboard/utils/common_functions.cpp
+    ../Software/src/devboard/utils/ota_confirm_gate.cpp
+    ../Software/src/devboard/utils/led_handler.cpp
+    ../Software/src/lib/adafruit-Adafruit_NeoPixel/Adafruit_NeoPixel.cpp
+    ../Software/src/datalayer/datalayer.cpp
+    ../Software/src/datalayer/battery_aggregate.cpp
+    ../Software/src/datalayer/datalayer_extended.cpp
+    ../Software/src/lib/uds_isotp/isotp.cpp
+    ../Software/src/lib/eModbus-eModbus/ModbusMessage.cpp
+    ../Software/src/lib/eModbus-eModbus/ModbusServer.cpp
+    ../Software/src/lib/eModbus-eModbus/ModbusServerRTU.cpp
+    ../Software/src/lib/eModbus-eModbus/ModbusTypeDefs.cpp
+    ../Software/src/lib/eModbus-eModbus/RTUutils.cpp
+    ../Software/src/battery/BATTERIES.cpp
+    ../Software/src/battery/Battery.cpp
+    ../Software/src/battery/AKASOL-BATTERY.cpp
+    ../Software/src/battery/BMW-I3-BATTERY.cpp
+    ../Software/src/battery/BMW-I3-HTML.cpp
+    ../Software/src/battery/BMW-IX-BATTERY.cpp
+    ../Software/src/battery/BMW-IX-HTML.cpp
+    ../Software/src/battery/BMW-PHEV-BATTERY.cpp
+    ../Software/src/shunt/BMW-SBOX.cpp
+    ../Software/src/battery/BOLT-AMPERA-BATTERY.cpp
+    ../Software/src/battery/BYD-ATTO-3-BATTERY.cpp
+    ../Software/src/battery/BYD-BATTERY-BOX-BATTERY.cpp
+    ../Software/src/battery/CanBattery.cpp
+    ../Software/src/battery/CELLPOWER-BMS.cpp
+    ../Software/src/battery/CHARGEBYTE-CCS.cpp
+    ../Software/src/battery/CHADEMO-BATTERY.cpp
+    ../Software/src/battery/CHADEMO-CT.cpp
+    ../Software/src/battery/CHADEMO-SHUNTS.cpp
+    ../Software/src/battery/CMFA-EV-BATTERY.cpp
+    ../Software/src/battery/CMP-SMART-CAR-BATTERY.cpp
+    ../Software/src/battery/DALY-BMS.cpp
+    ../Software/src/battery/ECMP-BATTERY.cpp
+    ../Software/src/battery/ENNOID-BMS.cpp
+    ../Software/src/battery/FORD-MACH-E-BATTERY.cpp
+    ../Software/src/battery/FOXESS-BATTERY.cpp
+    ../Software/src/battery/GEELY-GEOMETRY-C-BATTERY.cpp
+    ../Software/src/battery/GROWATT-HV-ARK-BATTERY.cpp
+    ../Software/src/battery/GROWATT-LV-BATTERY.cpp
+    ../Software/src/battery/HYUNDAI-IONIQ-28-BATTERY-HTML.cpp
+    ../Software/src/battery/HYUNDAI-IONIQ-28-BATTERY.cpp
+    ../Software/src/battery/IMIEV-CZERO-ION-BATTERY.cpp
+    ../Software/src/battery/JAGUAR-IPACE-BATTERY.cpp
+    ../Software/src/battery/KIA-E-GMP-BATTERY.cpp
+    ../Software/src/battery/KIA-64FD-BATTERY.cpp
+    ../Software/src/battery/KIA-HYUNDAI-64-BATTERY.cpp
+    ../Software/src/battery/KIA-HYUNDAI-HYBRID-BATTERY.cpp
+    ../Software/src/battery/MEB-BATTERY.cpp
+    ../Software/src/battery/MG-5-BATTERY.cpp
+    ../Software/src/battery/MG-GEN1-BATTERY.cpp
+    ../Software/src/battery/NISSAN-LEAF-BATTERY.cpp
+    ../Software/src/battery/ORION-BMS.cpp
+    ../Software/src/battery/PYLON-BATTERY.cpp
+    ../Software/src/battery/RANGE-ROVER-PHEV-BATTERY.cpp
+    ../Software/src/battery/RELION-LV-BATTERY.cpp
+    ../Software/src/battery/RENAULT-KANGOO-BATTERY.cpp
+    ../Software/src/battery/RENAULT-TWIZY.cpp
+    ../Software/src/battery/RENAULT-ZOE-GEN1-BATTERY.cpp
+    ../Software/src/battery/RENAULT-ZOE-GEN2-BATTERY.cpp
+    ../Software/src/battery/RIVIAN-BATTERY.cpp
+    ../Software/src/battery/RJXZS-BMS.cpp
+    ../Software/src/battery/SAMSUNG-SDI-LV-BATTERY.cpp
+    ../Software/src/battery/SANTA-FE-PHEV-BATTERY.cpp
+    ../Software/src/shunt/Shunts.cpp
+    ../Software/src/shunt/QNHCK2-16.cpp
+    ../Software/src/battery/SIMPBMS-BATTERY.cpp
+    ../Software/src/battery/SONO-BATTERY.cpp
+    ../Software/src/battery/STELLANTIS-SMALL-WIDE-4x4.cpp
+    ../Software/src/battery/STELLANTIS-PRO-ONE-BATTERY.cpp
+    ../Software/src/battery/TESLA-BATTERY.cpp
+    ../Software/src/battery/TESLA-HTML.cpp
+    ../Software/src/battery/TESLA-LEGACY-BATTERY.cpp
+    ../Software/src/battery/TEST-FAKE-BATTERY.cpp
+    ../Software/src/battery/THINK-BATTERY.cpp
+    ../Software/src/battery/THUNDERSTRUCK-BMS.cpp
+    ../Software/src/battery/GEELY-SEA-BATTERY.cpp
+    ../Software/src/battery/UdsCanBattery.cpp
+    ../Software/src/battery/VOLVO-SPA-BATTERY.cpp
+    ../Software/src/battery/VOLVO-SPA-HYBRID-BATTERY.cpp
+    ../Software/src/inverter/AFORE-CAN.cpp
+    ../Software/src/inverter/BYD-CAN.cpp
+    ../Software/src/inverter/BYD-MODBUS.cpp
+    ../Software/src/inverter/FERROAMP-CAN.cpp
+    ../Software/src/inverter/FOXESS-CAN.cpp
+    ../Software/src/inverter/FOXESS-EP-CAN.cpp
+    ../Software/src/inverter/GROWATT-HV-CAN.cpp
+    ../Software/src/inverter/GROWATT-LV-CAN.cpp
+    ../Software/src/inverter/GROWATT-WIT-CAN.cpp
+    ../Software/src/inverter/INVERTERS.cpp
+    ../Software/src/inverter/KOSTAL-RS485.cpp
+    ../Software/src/inverter/ModbusInverterProtocol.cpp
+    ../Software/src/inverter/PYLON-CAN.cpp
+    ../Software/src/inverter/PYLON-LV-RS485.cpp
+    ../Software/src/inverter/PYLON-LV-CAN.cpp
+    ../Software/src/inverter/SCHNEIDER-CAN.cpp
+    ../Software/src/inverter/SMA-BYD-H-CAN.cpp
+    ../Software/src/inverter/SMA-BYD-HVS-CAN.cpp
+    ../Software/src/inverter/SMA-SBS-BYD-CAN.cpp
+    ../Software/src/inverter/SMA-LV-CAN.cpp
+    ../Software/src/inverter/SOFAR-CAN.cpp
+    ../Software/src/inverter/SOL-ARK-LV-CAN.cpp
+    ../Software/src/inverter/SOLAX-CAN.cpp
+    ../Software/src/inverter/SOLXPOW-CAN.cpp
+    ../Software/src/inverter/SUNGROW-CAN.cpp
+    ../Software/src/inverter/VCU-CAN.cpp
+    ../Software/src/charger/CHARGERS.cpp
+    ../Software/src/charger/CHEVY-VOLT-CHARGER.cpp
+    ../Software/src/charger/NISSAN-LEAF-CHARGER.cpp
+    )
+
+target_link_libraries(tests
+    libgtest
+    libgmock
+)
+
+# Define the path for tests
+target_compile_definitions(tests PRIVATE 
+    TEST_CAN_LOG_DIR="${CMAKE_SOURCE_DIR}/can_log_based/can_logs"
+)
+
+gtest_discover_tests(tests)
