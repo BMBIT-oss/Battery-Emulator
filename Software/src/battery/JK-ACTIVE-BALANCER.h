@@ -228,6 +228,9 @@ class JKActiveBalancer : public CanBattery {
     uint16_t total_voltage_10mV;
     uint16_t max_balance_current_mA;
     uint16_t balance_current_mA;  // live balancing current from the 0x02 frame
+    uint16_t max_delta_mV;        // highest minus lowest cell as the balancer sees it (0x02 frame)
+    uint8_t identified_cells;     // cells the balancer actually detects (0x01 frame)
+    uint8_t set_cells;            // cell count configured in the balancer (0x03 frame)
     bool balance_switch_on;
     bool is_charge_balancing;
     bool is_discharge_balancing;

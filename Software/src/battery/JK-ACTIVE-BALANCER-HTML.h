@@ -76,6 +76,9 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
       content += jk_dl->is_connected[i] ? "<span style='color:lightgreen;'>Connected</span>"
                                         : "<span style='color:red;'>Disconnected</span>";
       content += "</h4><h4>Pack voltage: " + String(jk_dl->balancer_total_voltage_10mV[i] / 100.0, 2) + " V</h4>";
+      content += "<h4>Cells: " + String(jk_dl->balancer_identified_cells[i]) + " identified / " +
+                 String(jk_dl->balancer_set_cells[i]) + " set in the balancer</h4>";
+      content += "<h4>Cell delta: " + String(jk_dl->balancer_max_delta_mV[i]) + " mV</h4>";
       content += "<h4>Temperature: " + String(jk_dl->balancer_temperatures_dC[i] / 10.0, 1) + " &deg;C</h4>";
       content += "<h4>Balancing: ";
       if (jk_dl->charge_balancing_status[i]) {

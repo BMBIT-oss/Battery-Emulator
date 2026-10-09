@@ -82,6 +82,9 @@ void JKActiveBalancer::setup(void) {
     balancers[i].total_voltage_10mV = 0;
     balancers[i].max_balance_current_mA = 0;
     balancers[i].balance_current_mA = 0;
+    balancers[i].max_delta_mV = 0;
+    balancers[i].identified_cells = 0;
+    balancers[i].set_cells = 0;
     balancers[i].balance_switch_on = false;
     balancers[i].is_charge_balancing = false;
     balancers[i].is_discharge_balancing = false;
@@ -245,10 +248,12 @@ void JKActiveBalancer::handle_incoming_can_frame(CAN_frame rx_frame) {
       case 0x01: {
         balancers[balancer_idx].temperature_dC = ((int16_t)((rx_frame.data.u8[1] << 8) | rx_frame.data.u8[2])) * 10;
         balancers[balancer_idx].total_voltage_10mV = (rx_frame.data.u8[3] << 8) | rx_frame.data.u8[4];
+        balancers[balancer_idx].identified_cells = rx_frame.data.u8[7];
         break;
       }
       case 0x02: {  // Balancing and alarm status byte, max cell delta, live balancing current
         uint8_t status_byte = rx_frame.data.u8[3];
+        balancers[balancer_idx].max_delta_mV = (rx_frame.data.u8[4] << 8) | rx_frame.data.u8[5];
         balancers[balancer_idx].balance_current_mA = (rx_frame.data.u8[6] << 8) | rx_frame.data.u8[7];
         balancers[balancer_idx].raw_status_byte = status_byte;
         balancers[balancer_idx].is_charge_balancing = (status_byte & 0x01);     // Bit 0
@@ -284,6 +289,7 @@ void JKActiveBalancer::handle_incoming_can_frame(CAN_frame rx_frame) {
       case 0x03: {
         balancers[balancer_idx].max_balance_current_mA = (rx_frame.data.u8[3] << 8) | rx_frame.data.u8[4];
         balancers[balancer_idx].balance_switch_on = (rx_frame.data.u8[5] == 1);
+        balancers[balancer_idx].set_cells = rx_frame.data.u8[6];
         break;
       }
       case 0x04: {
@@ -506,6 +512,9 @@ void JKActiveBalancer::update_values() {
         !balancer_comms_latched[i] && (fault_counters[i] < MAX_FAULT_COUNT) && (last_response_millis[i] != 0);
     datalayer_jk->max_balance_current_mA[i] = balancers[i].max_balance_current_mA;
     datalayer_jk->balance_current_mA[i] = balancers[i].balance_current_mA;
+    datalayer_jk->balancer_max_delta_mV[i] = balancers[i].max_delta_mV;
+    datalayer_jk->balancer_identified_cells[i] = balancers[i].identified_cells;
+    datalayer_jk->balancer_set_cells[i] = balancers[i].set_cells;
     datalayer_jk->balance_switch_status[i] = balancers[i].balance_switch_on;
     datalayer_jk->charge_balancing_status[i] = balancers[i].is_charge_balancing;
     datalayer_jk->discharge_balancing_status[i] = balancers[i].is_discharge_balancing;
