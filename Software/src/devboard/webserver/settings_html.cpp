@@ -1232,11 +1232,12 @@ String raw_settings_processor(const String& var, BatteryEmulatorSettingsStore& s
   if (var == "JKREVCUR") {
     return settings.getBool("JKREVCUR", user_selected_jk_reverse_current) ? "checked" : "";
   }
-  if (var == "JKCABID") {  // CAB500 variants and their frame IDs
+  if (var == "JKCABID" || var == "JKCABID2") {  // CAB500 variants and their frame IDs, battery 1 and 2
     static const uint16_t ids[] = {0x3C1, 0x3C2, 0x3C3, 0x3C4, 0x3C5, 0x3C0};
     static const char* names[] = {"CAB500-1 (0x3C1)", "CAB500-2 (0x3C2)", "CAB500-3 (0x3C3)",
                                   "CAB500-4 (0x3C4)", "CAB500-5 (0x3C5)", "CAB500-9 (0x3C0)"};
-    uint32_t current = settings.getUInt("JKCABID", user_selected_jk_cab500_can_id);
+    uint32_t current = (var == "JKCABID") ? settings.getUInt("JKCABID", user_selected_jk_cab500_can_id)
+                                          : settings.getUInt("JKCABID2", user_selected_jk2_cab500_can_id);
     String options;
     for (size_t i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
       options += "<option value='" + String(ids[i]) + "'" + (current == ids[i] ? " selected" : "") + ">" + names[i] +
@@ -1756,6 +1757,10 @@ String qnhck_zero_text(uint16_t zero_mV) {
     form[data-battery="60"] .if-jk {
       display: contents;
     }
+    form .if-jk2 { display: none; } /* JK second battery fields, only with Second battery ticked */
+    form[data-dblbtr="true"] .if-jk2 {
+      display: contents;
+    }
 
     form .if-tesla { display: none; }
     form[data-battery="32"] .if-tesla, form[data-battery="33"] .if-tesla {
@@ -2213,6 +2218,12 @@ String qnhck_zero_text(uint16_t zero_mV) {
           <select name='JKCABID' id='JKCABID'>
           %JKCABID%
           </select>
+          <div class="if-jk2">
+          <label for='JKCABID2'>Second battery CAB500 variant (CAN frame ID): </label>
+          <select name='JKCABID2' id='JKCABID2'>
+          %JKCABID2%
+          </select>
+          </div>
           <label for='JKLFP'>LFP chemistry (unticked = NCM): </label>
           <input type='checkbox' name='JKLFP' id='JKLFP' value='on' %JKLFP% />
 

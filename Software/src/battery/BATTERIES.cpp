@@ -663,6 +663,7 @@ uint32_t user_selected_jk_chg_min_W = 4000;
 uint8_t user_selected_jk_max_balancers = 8;
 bool user_selected_jk_reverse_current = false;
 uint16_t user_selected_jk_cab500_can_id = 0x3C2;  // CAB500 variant frame ID: 0x3C0..0x3C5
+uint16_t user_selected_jk2_cab500_can_id = 0x3C2;  // same for the second battery's sensor
 bool user_selected_jk_lfp = false;
 uint16_t user_selected_jk_cell_max_mV = 4220;
 uint16_t user_selected_jk_cell_min_mV = 2700;
