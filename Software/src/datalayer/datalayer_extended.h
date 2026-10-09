@@ -934,6 +934,7 @@ struct DATALAYER_INFO_JK_ACTIVE_BALANCER {
   /** int16_t / uint16_t */
   int16_t balancer_temperatures_dC[MAX_BALANCERS_WEB];
   uint16_t max_balance_current_mA[MAX_BALANCERS_WEB];
+  uint16_t balance_current_mA[MAX_BALANCERS_WEB];
   /** Pack voltage per balancer in 10 mV: V11.56 from its status frame, V11.55 summed from its cells */
   uint16_t balancer_total_voltage_10mV[MAX_BALANCERS_WEB];
   /** CAB500 CAN speed reconfiguration: requested speed and the speed the sensor was found at, in kbps */

@@ -85,7 +85,8 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
       } else {
         content += "Idle";
       }
-      content += "</h4><h4>Balance Switch: ";
+      content += "</h4><h4>Balancing current: " + String(jk_dl->balance_current_mA[i]) + " mA</h4>";
+      content += "<h4>Balance Switch: ";
       content += jk_dl->balance_switch_status[i] ? "ON" : "OFF";
       content += "</h4><h4>Max Balance Current: " + String(jk_dl->max_balance_current_mA[i]) + " mA</h4>";
       content += "<h4>Communication Faults: " + String(jk_dl->fault_counters[i]) + "</h4>";
