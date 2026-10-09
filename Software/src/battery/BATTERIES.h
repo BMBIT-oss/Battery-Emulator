@@ -77,6 +77,7 @@ extern uint16_t user_selected_jk_chg_ramp_dpct;
 extern uint32_t user_selected_jk_chg_min_W;
 extern uint8_t user_selected_jk_max_balancers;
 extern bool user_selected_jk_reverse_current;
+extern uint16_t user_selected_jk_cab500_can_id;
 extern bool user_selected_jk_lfp;
 extern uint16_t user_selected_jk_cell_max_mV;
 extern uint16_t user_selected_jk_cell_min_mV;

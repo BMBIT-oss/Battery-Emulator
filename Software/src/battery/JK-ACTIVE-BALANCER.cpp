@@ -117,6 +117,7 @@ void JKActiveBalancer::setup(void) {
   MAX_CELL_VOLTAGE_MV = user_selected_jk_cell_max_mV;
   MIN_CELL_VOLTAGE_MV = user_selected_jk_cell_min_mV;
   reverse_current_active = user_selected_jk_reverse_current;
+  cab500_can_id = user_selected_jk_cab500_can_id;
   max_balancers_active = user_selected_jk_max_balancers;
   if (max_balancers_active < 1 || max_balancers_active > MAX_BALANCERS) {
     max_balancers_active = 8;
@@ -181,7 +182,7 @@ void JKActiveBalancer::handle_incoming_can_frame(CAN_frame rx_frame) {
   }
 
   // --- CAB500 current sensor frame (must be checked BEFORE the balancer ID filter below) ---
-  if (!rx_frame.ext_ID && rx_frame.ID == CAB500_CAN_ID && rx_frame.DLC == 8) {
+  if (!rx_frame.ext_ID && rx_frame.ID == cab500_can_id && rx_frame.DLC == 8) {
     cab500_frames_seen++;  // also counted while searching the sensor at other bus speeds
     if (config_error != JK_CFG_OK) {
       return;  // settings are inconsistent, battery not run

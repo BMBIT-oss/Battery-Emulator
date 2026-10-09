@@ -82,7 +82,7 @@ class JKActiveBalancer : public CanBattery {
   static constexpr uint32_t FAULT_POWER_W = 50;
 
   // CAB500 CAN current sensor: -2 variant, standard frame, DLC 8, every 10 ms
-  static constexpr uint32_t CAB500_CAN_ID = 0x3C2;
+  uint32_t cab500_can_id = 0x3C2;  // frame ID of the fitted CAB500 variant, from the setting (0x3C0..0x3C5)
   static constexpr unsigned long CAB500_BOOT_GRACE_MS = 30000;     // No fault counting for the first 30 s
   static constexpr unsigned long CAB500_ERROR_PERSIST_MS = 10000;  // ERROR_INDICATION must persist 10 s to latch
 

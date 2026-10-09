@@ -43,6 +43,7 @@
     "JKCMINW": "Charge power never drops below this inside the ramp, so a Deye keeps charging to the top.",
     "JKMAXBAL": "Upper limit for the number of balancers polled, 1 to 15. The cell layout decides how many are needed.",
     "JKREVCUR": "Tick if the current shows negative while charging. Flips the CAB500 sign for SOC, display and inverter.",
+    "JKCABID": "Which CAB500 variant is fitted. The variant number is printed on the sensor and sets the CAN ID it transmits on: -1 = 0x3C1, -2 = 0x3C2, -3 = 0x3C3, -4 = 0x3C4, -5 = 0x3C5, -9 = 0x3C0. Default -2.",
     "JKLFP": "Selects the LFP SOC table and fills the voltage limits below with LFP defaults. Unticked = NCM. Overrides the chemistry dropdown for this battery.",
     "JKCELLMAX": "Cell voltage above which the safety layer stops charging.",
     "JKCELLMIN": "Cell voltage below which the safety layer stops discharging.",

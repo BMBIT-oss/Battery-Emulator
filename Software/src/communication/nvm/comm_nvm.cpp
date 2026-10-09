@@ -173,6 +173,7 @@ void init_stored_settings() {
   user_selected_jk_chg_min_W = settings.getUInt("JKCMINW", user_selected_jk_chg_min_W);
   user_selected_jk_max_balancers = settings.getUInt("JKMAXBAL", user_selected_jk_max_balancers);
   user_selected_jk_reverse_current = settings.getBool("JKREVCUR", user_selected_jk_reverse_current);
+  user_selected_jk_cab500_can_id = settings.getUInt("JKCABID", user_selected_jk_cab500_can_id);
   user_selected_jk_lfp = settings.getBool("JKLFP", user_selected_jk_lfp);
   user_selected_jk_cell_max_mV = settings.getUInt("JKCELLMAX", user_selected_jk_cell_max_mV);
   user_selected_jk_cell_min_mV = settings.getUInt("JKCELLMIN", user_selected_jk_cell_min_mV);

@@ -1232,6 +1232,18 @@ String raw_settings_processor(const String& var, BatteryEmulatorSettingsStore& s
   if (var == "JKREVCUR") {
     return settings.getBool("JKREVCUR", user_selected_jk_reverse_current) ? "checked" : "";
   }
+  if (var == "JKCABID") {  // CAB500 variants and their frame IDs
+    static const uint16_t ids[] = {0x3C1, 0x3C2, 0x3C3, 0x3C4, 0x3C5, 0x3C0};
+    static const char* names[] = {"CAB500-1 (0x3C1)", "CAB500-2 (0x3C2)", "CAB500-3 (0x3C3)",
+                                  "CAB500-4 (0x3C4)", "CAB500-5 (0x3C5)", "CAB500-9 (0x3C0)"};
+    uint32_t current = settings.getUInt("JKCABID", user_selected_jk_cab500_can_id);
+    String options;
+    for (size_t i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
+      options += "<option value='" + String(ids[i]) + "'" + (current == ids[i] ? " selected" : "") + ">" + names[i] +
+                 "</option>";
+    }
+    return options;
+  }
   if (var == "JKLFP") {
     return settings.getBool("JKLFP", user_selected_jk_lfp) ? "checked" : "";
   }
@@ -2197,6 +2209,10 @@ String qnhck_zero_text(uint16_t zero_mV) {
           <input type='number' name='JKMAXBAL' value="%JKMAXBAL%" min="1" max="15" step="1" />
           <label for='JKREVCUR'>Reverse current sensor direction: </label>
           <input type='checkbox' name='JKREVCUR' id='JKREVCUR' value='on' %JKREVCUR% />
+          <label for='JKCABID'>CAB500 variant (CAN frame ID): </label>
+          <select name='JKCABID' id='JKCABID'>
+          %JKCABID%
+          </select>
           <label for='JKLFP'>LFP chemistry (unticked = NCM): </label>
           <input type='checkbox' name='JKLFP' id='JKLFP' value='on' %JKLFP% />
 

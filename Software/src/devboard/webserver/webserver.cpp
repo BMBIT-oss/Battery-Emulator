@@ -511,7 +511,7 @@ void init_webserver() {
       "FOXESSMODULES", "CHGTAPERSTART", "CHGTAPERFLOOR", "SYSLOGPORT", "SYSLOGFAC",   "PERBMSRESETH", "JKCHGW",
       "JKDCHGW",       "JKRESTMS",      "JKDMINW",       "JKCMINW",    "JKMAXBAL",    "JKCELLMAX",    "JKCELLMIN",
       "JKCELLDEV",     "JKPACKMAX",     "JKPACKMIN",     "JKVFON",     "JKVFOFF",     "JKVEMON",      "JKVEMOFF",
-      "JKCELLS",       "JKCPB",         "JKFWVER",       "JKFWMASK",
+      "JKCELLS",       "JKCPB",         "JKFWVER",       "JKFWMASK",   "JKCABID",
 #ifndef SMALL_FLASH_DEVICE
       "CTVNOM",        "CTANOM",        "QNHIPN",        "QNHVO",
 #endif  // SMALL_FLASH_DEVICE
