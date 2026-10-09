@@ -323,6 +323,7 @@ void JKActiveBalancer::update_values() {
   uint16_t max_cell_voltage = 0;
   int cells_processed = 0;
   int valid_cells = 0;  // cells that have reported a voltage; 0 mV = not received yet or tap broken
+  uint32_t balancer_sum_mV[MAX_BALANCERS] = {0};  // per balancer, for the page (V11.55 total frame is not usable)
 
   for (int i = 0; i < number_of_balancers; i++) {
     if (balancers[i].temperature_dC > max_temp) {
@@ -352,6 +353,7 @@ void JKActiveBalancer::update_values() {
       if (current_cell_voltage > 0) {
         valid_cells++;
         total_voltage_mV += current_cell_voltage;
+        balancer_sum_mV[i] += current_cell_voltage;
         datalayer_battery->status.cell_voltages_mV[cells_processed] = current_cell_voltage;
         if (current_cell_voltage > max_cell_voltage) {
           max_cell_voltage = current_cell_voltage;
@@ -493,6 +495,9 @@ void JKActiveBalancer::update_values() {
   datalayer_jk->number_of_balancers = number_of_balancers;
   for (int i = 0; i < number_of_balancers; i++) {
     datalayer_jk->balancer_temperatures_dC[i] = balancers[i].temperature_dC;
+    // V11.55 (inverted alarm bits) does not report a usable total voltage: sum its cells instead
+    datalayer_jk->balancer_total_voltage_10mV[i] =
+        balancers[i].fw_inverted ? (uint16_t)(balancer_sum_mV[i] / 10) : balancers[i].total_voltage_10mV;
     datalayer_jk->fault_counters[i] = fault_counters[i];
     datalayer_jk->is_connected[i] =
         !balancer_comms_latched[i] && (fault_counters[i] < MAX_FAULT_COUNT) && (last_response_millis[i] != 0);
@@ -544,6 +549,8 @@ void JKActiveBalancer::update_values() {
   Calculated_capacity_Wh = (uint32_t)(Battery_Calc_Ah * (MAX_PACK_VOLTAGE_DV / 10.0f));
   datalayer_battery->status.remaining_capacity_Wh = remaining_Wh_by_soc(soc.getSoCPercent(), Calculated_capacity_Wh);
   datalayer_jk->Calc_capacity_Wh = Calculated_capacity_Wh;
+  datalayer_jk->rated_capacity_mAh = (uint32_t)(Battery_Ah * 1000.0f);
+  datalayer_jk->calc_capacity_mAh = (uint32_t)(Battery_Calc_Ah * 1000.0f);
 
   // --- Allowed charge / discharge power: protections first, then the SOC ramps ---
   uint16_t cell_deviation_mV =

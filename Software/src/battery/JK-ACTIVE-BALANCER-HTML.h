@@ -78,7 +78,8 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
       content += "<h4>Status: ";
       content += jk_dl->is_connected[i] ? "<span style='color:lightgreen;'>Connected</span>"
                                         : "<span style='color:red;'>Disconnected</span>";
-      content += "</h4><h4>Temperature: " + String(jk_dl->balancer_temperatures_dC[i] / 10.0, 1) + " &deg;C</h4>";
+      content += "</h4><h4>Pack voltage: " + String(jk_dl->balancer_total_voltage_10mV[i] / 100.0, 2) + " V</h4>";
+      content += "<h4>Temperature: " + String(jk_dl->balancer_temperatures_dC[i] / 10.0, 1) + " &deg;C</h4>";
       content += "<h4>Balancing: ";
       if (jk_dl->charge_balancing_status[i]) {
         content += "Charge Balancing";
@@ -139,7 +140,8 @@ class JkActiveBalancerHtmlRenderer : public BatteryHtmlRenderer {
     }
     content += "<h4>CAN speed change: ";
     content += cab500_speed_text();
-    content += "</h4></div>";
+    content += "</h4><h4>Capacity used for SOC: " + String(jk_dl->calc_capacity_mAh / 1000.0, 2) + " Ah (rated " +
+               String(jk_dl->rated_capacity_mAh / 1000.0, 2) + " Ah from the Wh setting)</h4></div>";
 
     // --- Coulomb counter ---
     content += "<h4>BMS Cycles: " + String(jk_dl->BMS_Cycles) + "</h4>";

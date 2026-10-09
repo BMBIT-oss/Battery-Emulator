@@ -920,6 +920,9 @@ struct DATALAYER_INFO_JK_ACTIVE_BALANCER {
   uint32_t BMS_Cycles;
   /** Calculated battery capacity in Wh after cycle degradation */
   uint32_t Calc_capacity_Wh;
+  /** Capacity the coulomb counter works with, in mAh: rated = Wh / pack max voltage, calc = rated after cycle degradation */
+  uint32_t rated_capacity_mAh;
+  uint32_t calc_capacity_mAh;
 
   /** int */
   /** Number of balancers derived from the cell layout settings */
@@ -931,6 +934,8 @@ struct DATALAYER_INFO_JK_ACTIVE_BALANCER {
   /** int16_t / uint16_t */
   int16_t balancer_temperatures_dC[MAX_BALANCERS_WEB];
   uint16_t max_balance_current_mA[MAX_BALANCERS_WEB];
+  /** Pack voltage per balancer in 10 mV: V11.56 from its status frame, V11.55 summed from its cells */
+  uint16_t balancer_total_voltage_10mV[MAX_BALANCERS_WEB];
   /** CAB500 CAN speed reconfiguration: requested speed and the speed the sensor was found at, in kbps */
   uint16_t ct_cab500_speed_target_kbps;
   uint16_t ct_cab500_speed_found_kbps;
